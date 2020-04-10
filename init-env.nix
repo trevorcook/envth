@@ -6,7 +6,7 @@ rec {
     {  shellHook = ''
          [[ $ENVTH_ENTRY == bin ]] && ENVTH_BUILDDIR=.
          source ${mkEnvLib envth-lib}
-         ${self.importLibsHook}
+         ${if self ? importLibsHook then self.importLibsHook else ""}
          ${if isNull lib then "" else "source $lib"}
          ''
          + shellHook ;
