@@ -1,5 +1,5 @@
-{envth}:
-with envth.lib;
+{env-th}:
+with env-th.lib;
 rec {
   init-env = self:
     super@{ shellHook ? "", lib ? null, ... }:

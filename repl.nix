@@ -1,1 +1,1 @@
-(import <nixpkgs> {}).envth
+(import <nixpkgs> {}).env-th

@@ -1,11 +1,11 @@
-{stdenv, envth, lib}:
+{stdenv, env-th, lib}:
 with lib;
-with envth.resources;
-with envth.lib;
-with envth.init-attrs;
-with envth.init-env;
-with envth.builder;
-with envth.imports;
+with env-th.resources;
+with env-th.lib;
+with env-th.init-attrs;
+with env-th.init-env;
+with env-th.builder;
+with env-th.imports;
 rec
 {
 

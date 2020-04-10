@@ -1,5 +1,5 @@
-{callPackage, lib, envth}: with builtins; with lib;
-with envth.init-attrs;
+{callPackage, lib, env-th}: with builtins; with lib;
+with env-th.init-attrs;
 let
   isPath = v: builtins.typeOf v == "path";
 in
@@ -29,7 +29,7 @@ rec
     mkImportLibsHook = attrs@{import_libs ? [],...}:
       let
         f = l: "source ${l}\n";
-      in
+      inenv-th
         attrs // { importLibsHook = concatMapStrings f import_libs ;};
 
     add-imports = self: attrs:
