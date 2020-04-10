@@ -1,4 +1,0 @@
-{ nixpkgs ? import <nixpkgs> {}
-}:
-with nixpkgs.envth;
-mkEnvironment env-0-attrs
