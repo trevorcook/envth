@@ -27,6 +27,6 @@ rec
       proc = exts: fix (extends exts (_: attrs));
       base = stdenv.mkDerivation (proc f);
       final = stdenv.mkDerivation (proc f');
-      f' = composeExtensions f (add-drv-path base);
+      f' = composeExtensions (add-drv-path base) f;
     in final;
 }
