@@ -1,11 +1,11 @@
 {nix}:
 {
-  name = "env0";
+  name = "env-0";
   shellHook = ''
     env-set-PS1
     ENVTH_OUT=''${ENVTH_OUT:=$out}
     '';
-  definition = ./env0.nix;
+  definition = ./env-0.nix;
   lib = {
 
     # BUILDING The environment
