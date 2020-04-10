@@ -29,7 +29,7 @@ rec
     mkImportLibsHook = attrs@{import_libs ? [],...}:
       let
         f = l: "source ${l}\n";
-      inenv-th
+      in
         attrs // { importLibsHook = concatMapStrings f import_libs ;};
 
     add-imports = self: attrs:
