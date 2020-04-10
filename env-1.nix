@@ -1,3 +1,3 @@
 { nixpkgs ? import <nixpkgs> {}
 }:
-with nixpkgs.envth; env-1
+with nixpkgs.env-th; env-1
