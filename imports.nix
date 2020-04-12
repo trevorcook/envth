@@ -9,35 +9,41 @@ rec
     merge-import = x: accum@{ import_names ? [],
                               import_libs ? [],
                               import_shellHooks ? [],
+                              import_buildInputs ? [],
                               ...}:
-     let
-       imp = if isPath x then callPackage x {} else x;
-       getShellHook = if imp ? passthru.attrs.shellHook then
-                        imp.passthru.attrs.shellHook
-                      else "NoShellHook";
-       getImpLib = if imp ? import_libs then
-                     imp.import_libs
-                   else
-                     [];
-     in
+    let
+      imp = if isPath x then callPackage x {} else x;
+      attrMaybe = def: p: s: if hasAttrByPath p s
+                               then getAttrFromPath p s
+                               else def;
+
+    in
       imp.passthru.attrs // accum // {
         import_names = [imp.name] ++ import_names;
-        import_libs = getImpLib ++ [imp.lib] ++ import_libs;
-        import_shellHooks = [getShellHook]
+        import_buildInputs =  (attrMaybe [] ["passthru" "attrs" "buildInputs"] imp)
+                           ++ (attrMaybe [] [ "import_buildInputs" ] imp)
+                           ++ import_buildInputs;
+        import_libs = (attrMaybe [] ["import_libs"] imp)
+                    ++ [(attrMaybe [] ["lib"] imp)]
+                    ++ import_libs;
+        import_shellHooks = (attrMaybe [""] ["passthru" "attrs" "shellHooks"] imp)
                           ++ import_shellHooks;
       };
-    mkImportLibsHook = attrs@{import_libs ? [],...}:
+    mkImportAttrs = orig@{buildInputs?[], ...}:
+                    mg@{import_libs ? [], import_buildInputs ? [],...}:
       let
         f = l: "source ${l}\n";
       in
-        attrs // { importLibsHook = concatMapStrings f import_libs ;};
+        { importLibsHook = concatMapStrings f import_libs ;
+          buildInputs = buildInputs ++ import_buildInputs; };
 
     add-imports = self: attrs:
       if attrs ? imports && attrs.imports != [] then
         let
           mg = foldr merge-import {} attrs.imports;
         in
-          diffAttrs (mkImportLibsHook mg) attrs
+          (diffAttrs mg attrs)
+          // (mkImportAttrs attrs mg)
       else
         {};
   }

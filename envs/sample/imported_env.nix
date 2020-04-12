@@ -1,4 +1,6 @@
-{env-th ? (import <nixpkgs> {}).env-th}: with env-th;
+let nixpkgs = import <nixpkgs> {};
+    envthdef = ../../env-th.nix nixpkgs {}; in
+{env-th ? envthdef, gnused ? nixpkgs.gnused }: with env-th;
 mkEnvironment {
   name = "imported_env";
   definition = ./imported_env.nix;
@@ -11,6 +13,7 @@ mkEnvironment {
       echo $VAR1 $VAR2
       '';
   };
+  buildInputs = [ gnused ];
 
 
 }

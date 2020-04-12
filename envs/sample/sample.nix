@@ -1,4 +1,6 @@
-{env-th ? (import <nixpkgs> {}).env-th }: with env-th;
+let nixpkgs = import <nixpkgs> {};
+    envthdef = import ../../env-th.nix nixpkgs {}; in
+{env-th ? envthdef }: with env-th;
 mkEnvironment {
   # Used to determine output name:
   #    $out/bin/enter-${name}
@@ -36,10 +38,13 @@ mkEnvironment {
   # The `imports` are added in order they are listed, so any later
   # imports will override earlier variables and functions of the
   # same name.
+  # Optional: List of in-scope mkEnvironment-derivations or paths to derivations
+  imports = [
+    ./imported_env.nix  #path to env file will be loaded using callPackage
+    ];
   # mkEnvironment imports an initial environment, env-0, which
   # contains useful utilities. Try
   # > env-0-lib
   # to list contained functions.
-  imports = [ ./imported_env.nix ];
 
 }

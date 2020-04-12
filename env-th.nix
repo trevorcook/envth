@@ -1,9 +1,8 @@
 self: super:
-with self.lib;
+with builtins; with self.lib;
 let callPackage = self.callPackage;
 in rec {
 
-  nixpkgs = import <nixpkgs> {};
   env0 = callPackage ./env-0.nix {};
 
   init-attrs = callPackage ./init-attrs.nix {};
@@ -16,4 +15,11 @@ in rec {
 
   lib = callPackage ./lib.nix {};
   mkEnvironment = (callPackage ./mkEnvironment.nix { }).mkEnvironment;
+
+  envs =
+    let
+      envsdir = filterAttrs (n: v: n != "README.md") (readDir ./envs);
+      mkEnv = n: _: callPackage (./envs + "/${n}") {};
+    in
+      mapAttrs mkEnv envsdir;
 }
