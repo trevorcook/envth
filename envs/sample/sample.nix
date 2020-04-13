@@ -18,6 +18,8 @@ mkEnvironment {
   # used to tag resources which can be "localized", that is, copied
   # from /nix/store to a local directory. Localized resources will
   # have the same file structure as the original.
+  # Resources are localized from within the running environment with
+  # `env-localize`
   a_dir = mkSrc ./a_dir;
   b_file = mkSrc ./b_dir/b_file.txt;
 

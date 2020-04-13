@@ -28,4 +28,4 @@ this output is to migrate environments between hosts, ultimately
 providing for `ssh` connections into identical environments on
 foreign hosts.
 
-# See env/sample.nix to get started
+# See [env/sample/sample.nix](https://github.com/trevorcook/env-th/blob/master/envs/sample/sample.nix) to get started
