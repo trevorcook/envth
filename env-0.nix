@@ -74,7 +74,7 @@
       return $ssh_cond
       '';
     env-su = ''
-      sudo su --shell $(env-enter-path) $@
+      sudo su --shell $(env-entry-path) $@
       '';
 
     ## Recreating original source environmet
@@ -93,7 +93,6 @@
     env-cp-resource = ''
       local home
       home=$(env-home-dir)
-      home=$PWD #for testing
       if [[ -d $1 ]] ; then
         for i in $(find $1 -type f -printf "%P\n"); do
           env-cp-file $1/$i $home/$2/$i
