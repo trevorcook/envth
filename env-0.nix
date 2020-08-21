@@ -10,9 +10,11 @@
 
     # BUILDING The environment
     env-build = ''
-      mkdir -p $ENVTH_BUILDDIR/.env-th
-      ENVTH_OUT="$(${nix}/bin/nix-build --quiet $ENVTH_BUILDDIR/$definition \
-        -o $ENVTH_BUILDDIR/.env-th/result)"
+      if [[ $ENVTH_ENTRY ~= bin ]]; then
+        mkdir -p $ENVTH_BUILDDIR/.env-th
+        ENVTH_OUT="$(${nix}/bin/nix-build --quiet $ENVTH_BUILDDIR/$definition \
+          -o $ENVTH_BUILDDIR/.env-th/result)"
+      fi
       echo $ENVTH_OUT
             '';
     env-cleanup = ''
