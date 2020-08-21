@@ -20,7 +20,7 @@
             ENVTH_OUT
       '';
     env-entry-path = ''
-      if [[ $ENV_ENTRY == bin ]]; then
+      if [[ $ENVTH_ENTRY == bin ]]; then
         echo -n "$ENVTH_OUT/bin/enter-$name"
       else
         echo -n "$(env-build)/bin/enter-$name"
