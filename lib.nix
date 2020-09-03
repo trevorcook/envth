@@ -1,4 +1,4 @@
-{lib, writeScript, nix}:
+{lib, writeScript }:
 with builtins;
 with lib;
 rec {
@@ -22,7 +22,7 @@ rec {
           '';
         "${name}-vars" = ''
           cat << EOF
-          VAR = current_value (declared_value)
+          VAR = current_value
           ------------------------------------
           ${show-vars (attrs') }
           EOF
@@ -30,22 +30,12 @@ rec {
         };
     in out;
 
-  show-vars = attrs:
-    let
-      show = n: v: "${n} = \$"+"${n}";
-    in
-      concatStringsSep "\n" (mapAttrsToList show attrs);
-  show-vars-current = varlist:
-    let
-      show = n: "${n} = \$"+"${n}\n";
-    in
-      concatMapStrings show varlist;
-  show-vars-default = attrs:
-    let
-      show = n: v: "${n} = ${v}";
-    in
-      concatStringsSep "\n" (mapAttrsToList show attrs);
+  make-vars-string = f: attrs:
+    concatStringsSep "\n" (mapAttrsToList f attrs);
+  export-vars = make-vars-string (n: v: "export ${n}=${v}");
+  show-vars = show-vars-current;
+  show-vars-current = make-vars-string (n: v: "${n} = \${"+"${n}}");
+  show-vars-default = make-vars-string (n: v: "${n} = ${builtins.toString v}");
   make-env-lib = self: super: { lib = mkEnvLib super; };
-
 
 }

@@ -1,21 +1,64 @@
-{ writeScript, writeScriptBin, nix, makeWrapper }:
+{ writeScript, stdenv, env-th,
+  makeWrapper, bash, bashInteractive, coreutils }:
 rec {
-  make-builder = self: attrs@{ name, ENVTH_DRV ? "", buildInputs ? [], ... }:
+  make-builder = self: super@{ name, ENVTH_DRV ? ""
+                             , buildInputs ? []
+                             , ... }:
     { builder = writeScript "${name}-builder" ''
+        # Save the environment to capture all variables that nix put
+        # in the environment.
+        ${coreutils}/bin/mkdir -p $out/share
+        declare -px > $out/share/${name}-pre.env
+        ${coreutils}/bin/env -i ${fix-env} \
+          $out/share/${name}-pre.env $out/share/${name}-post.env
+
         source $stdenv/setup
+
+        # Create output programs.
         mkdir -p $out/bin
-        makeWrapper $this_enter_env $out/bin/enter-${name} \
+        makeWrapper $this_enter_env_sh $out/bin/enter-${name} \
           --set ENVTH_OUT $out
-        # wrapProgram $this_enter_env --set ENVTH_OUT $out
-        # cp $this_enter_env $out/bin/enter-${name}
+        makeWrapper $this_enter_env_dev $out/bin/enter-${name}-dev \
+          --set ENVTH_OUT $out
         '';
-      this_enter_env = writeScript "enter-${name}" ''
+
+      this_enter_env_sh = writeScript "enter-${name}" ''
+        #!${bash}/bin/bash
+        export ENVTH_ENTRY=bin
+
+        # Inherit the build environment, modify to be more like nix-shell env
+        source $ENVTH_OUT/share/${name}-post.env
+        export NIX_BUILD_TOP=/run/user/$(id -u $USER)
+        export TEMP=$NIX_BUILD_TOP
+        export TEMPDIR=$NIX_BUILD_TOP
+        export TMP=$NIX_BUILD_TOP
+        export TMPDIR=$NIX_BUILD_TOP
+        export IN_NIX_SHELL=impure
+
+        TMPPATH=$PATH
+        source ${stdenv}/setup
+        export PATH="$PATH:$TMPPATH"
+
+        exec ${bashInteractive}/bin/bash --init-file <(echo "$shellHook") "$@"
+        '';
+
+      this_enter_env_dev = writeScript "enter-${name}-dev" ''
+        #!${bash}/bin/bash
         export ENVTH_ENTRY=bin
         export ENVTH_OUT
-        ${nix}/bin/nix-shell ${ENVTH_DRV} "$@"
+        nix-shell ${ENVTH_DRV} "$@"
         '';
-       buildInputs = [makeWrapper]++buildInputs;
+
+      buildInputs = [makeWrapper bash]++buildInputs;
       };
+  fix-env = writeScript "fix-env" ''
+          #!${bash}/bin/bash
+          # Unset variables in an environment so as not to interfere
+          # when re-sourced.
+          source $1
+          unset PATH PWD TEMP TEMPDIR TMP TMPDIR HOME OLDPWD
+          declare -px > $2
+          '';
 
   add-drv-path = drv: self: _: { ENVTH_DRV = drv.drvPath;
                                  /* ENVTH_OUTPATH = self.outPath;  */

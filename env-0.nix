@@ -1,4 +1,4 @@
-{nix}:
+{  }:
 {
   name = "env-0";
   shellHook = ''
@@ -12,21 +12,21 @@
     env-build = ''
       if [[ $ENVTH_ENTRY != bin ]]; then
         mkdir -p $ENVTH_BUILDDIR/.env-th
-        ENVTH_OUT="$(${nix}/bin/nix-build --quiet $ENVTH_BUILDDIR/$definition \
+        ENVTH_OUT="$(nix-build --quiet $ENVTH_BUILDDIR/$definition \
           -o $ENVTH_BUILDDIR/.env-th/result)"
       fi
       echo $ENVTH_OUT
             '';
     env-cleanup = ''
       unset ENVTH_BUILDDIR ENVTH_RESOURCES ENVTH_ENTRY ENVTH_DRV \
-            ENVTH_OUT
+            ENVTH_OUT ENVTH_PATHS_IN_STORE
       '';
     env-entry-path = ''
-      if [[ $ENVTH_ENTRY == bin ]]; then
-        echo -n "$ENVTH_OUT/bin/enter-$name"
-      else
+      #if [[ $ENVTH_ENTRY == bin ]]; then
+      #  echo -n "$ENVTH_OUT/bin/enter-$name"
+      #else
         echo -n "$(env-build)/bin/enter-$name"
-      fi
+      #fi
       '';
     env-reload = ''
       local pth=$ENVTH_BUILDDIR
@@ -54,7 +54,7 @@
     ## Migrating to other hosts
     # Use in conjunction with NIX_SSHOPTS for versitile copies.
     env-deploy = ''
-      nix-copy-closure --include-outputs --to $1 $(env-build) $buildInputs
+      nix-copy-closure --to $1 $(env-build)
       '';
     env-ssh = ''
       env-deploy "$1" && env-ssh-enter "$(env-entry-path)" "$@"
@@ -79,8 +79,8 @@
       sudo su --shell $(env-entry-path) $@
       '';
 
-    ## Recreating original source environmet
     env-localize = ''
+      ## For recreating original source environmet.
       echo "%% Making Local Resources %%%%%%%%%%%%%%%%%%%%%%%"
       local arr
       eval "arr=( $ENVTH_RESOURCES )"
@@ -114,6 +114,13 @@
       fi
       '';
 
+    #Remove duplicates from path
+    env-PATH-nub = ''
+      PATH=$(echo -n $PATH | awk -v RS=: '!($0 in a) {a[$0]; printf("%s%s", length(a) > 1 ? ":" : "", $0)}')
+      '';
+    env-PATH-stores = ''
+      echo $PATH | tr ":" "\n" | grep /nix/store | tr "\n" " "
+      '';
 
     ## OTHER UTILITIES
     env-set-PS1 = let

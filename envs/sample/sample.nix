@@ -1,6 +1,11 @@
-let nixpkgs = import <nixpkgs> {};
-    envthdef = import ../../env-th.nix nixpkgs {}; in
-{env-th ? envthdef }: with env-th;
+let
+  nixpkgs = import <nixpkgs> { overlays = [ env-th-overlay ]; };
+  env-th-overlay = self: super: { env-th = import env-th-src self super; };
+  env-th-src = builtins.fetchGit {
+      url = https://github.com/trevorcook/env-th.git ;
+      rev = "877caf9c6c8fe7c4edbf00e84b4655acda5f1487"; };
+in
+{env-th ? nixpkgs.env-th }: with env-th;
 mkEnvironment {
   # Used to determine output name:
   #    $out/bin/enter-${name}

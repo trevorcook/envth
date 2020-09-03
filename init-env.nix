@@ -8,6 +8,8 @@ rec {
          source ${mkEnvLib env0}
          ${if self ? importLibsHook then self.importLibsHook else ""}
          ${if isNull lib then "" else "source $lib"}
+         env-PATH-nub
+         ENVTH_PATHS_IN_STORE=$(env-PATH-stores)
          ''
          + env0.shellHook
          + shellHook ;
