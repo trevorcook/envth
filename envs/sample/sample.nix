@@ -3,21 +3,39 @@ let
   env-th-overlay = self: super: { env-th = import env-th-src self super; };
   env-th-src = builtins.fetchGit {
       url = https://github.com/trevorcook/env-th.git ;
-      rev = "877caf9c6c8fe7c4edbf00e84b4655acda5f1487"; };
+      rev = "b4836bae89263d9cc70e883f21fffaed9e296272"; };
 in
 {env-th ? nixpkgs.env-th }: with env-th;
-mkEnvironment {
+mkEnvironment rec {
+  # REQUIRED ARGS ####################
+
   # Used to determine output name:
   #    $out/bin/enter-${name}
-  # REQUIRED
   name = "sample";
-
   # Must refer to itself.
-  # REQUIRED
   definition = ./sample.nix;
+
+  # OPTIONAL ##########################
+
+  # Commands run upon shell entry
+  shellHook = ''
+    cat <<EOF
+    Hello from ${name} environment
+    setting b_file to no/such/file
+
+    EOF
+    b_file="no/such/file"
+    show_b_file
+
+  '';
+
 
   # As usual, environment variables can be defined with attributes.
   VAR1 = "sample VAR1";
+  VAR2 = https://nixos.org;
+  VAR3 = [ "a" "b" ];
+  VAR4 = { __toString = _ : "I hold some data which won't be seen in the env";
+           dat = "somehting"; };
 
   # The following attributes demonstrate `env-th.mkSrc` a utility
   # used to tag resources which can be "localized", that is, copied
@@ -33,11 +51,19 @@ mkEnvironment {
   # The values become the contents of the function.
   # mkEnvironment also adds two functions, ${name}-lib and ${name}-vars
   # which list the defined functions and vars (respectively).
-  # OPTIONAL
   lib = {
     function-1 = ''
       echo this is function one, with args "$@"
       '';
+    show_b_file = ''
+      cat <<EOF
+      In function show_b_file
+      \''${b_file} is ${b_file}
+      \''${b_file.local} is ${b_file.local}
+      However, b_file is currently $b_file
+      EOF
+      '';
+
   };
 
   # A list of environments to be merged with the current one.

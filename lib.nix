@@ -7,7 +7,7 @@ rec {
     in concatStrings (mapAttrsToList mkShellFunction attrs);
   mkShellFunction = name: value: ''
     ${name}(){
-      ${value}
+    ${value}
     }
     '';
   mkShellLib = name: lib: writeScript "${name}-lib" (mkShellFunctions lib);
