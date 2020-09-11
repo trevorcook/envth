@@ -28,7 +28,7 @@ in rec {
     let
       /* env-th' = env-th.override { envs = envs-all; }; */
       envs-in = attrByPath ["envs"] [] super;
-      update = update-with envs-in;
+      update = update-env-th-with envs-in;
       envs-out = update.envs-added;
       envs-all = update.env-th.envs;
       envs-extra = listToAttrs envs-out;
