@@ -1,5 +1,5 @@
 {callPackage, lib, env-th}: with builtins; with lib;
-with env-th.init-attrs;
+with env-th.lib.init-attrs;
 let
   isPath = v: builtins.typeOf v == "path";
 in

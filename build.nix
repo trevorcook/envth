@@ -1,4 +1,4 @@
-{ writeScript, stdenv, env-th,
+{ writeScript, stdenv,
   makeWrapper, bash, bashInteractive, coreutils }:
 rec {
   make-builder = self: super@{ name, ENVTH_DRV ? ""

@@ -1,11 +1,12 @@
 {stdenv, env-th, lib}:
 with lib;
-with env-th.resources;
-with env-th.lib;
-with env-th.init-attrs;
-with env-th.init-env;
-with env-th.builder;
-with env-th.imports;
+with env-th.lib.resources;
+with env-th.lib.shellLib;
+with env-th.lib.init-attrs;
+with env-th.lib.init-env;
+with env-th.lib.builder;
+with env-th.lib.imports;
+with env-th.lib.add-envs;
 rec
 {
 
@@ -16,6 +17,7 @@ rec
                      make-builder
                      make-env-lib
                      init-env
+                     add-envs
                     ];
 
   process-attrs =
