@@ -85,7 +85,7 @@ mkEnvironment rec {
   imports = [
     envs.env-a # environment already in scope-- in this case thanks to
                # `with env-th.addEnvs [ ./env-a.nix];` from line 10.
-    #./env-c.nix  # path to env file will be loaded using callPackage
+    ./env-c.nix  # path to env file will be loaded using callPackage
     ];
 
   # Export extra environments.

@@ -9,6 +9,7 @@ let
       in
         mapAttrs mkEnv envsdir;
 
+  env-th0 = mkenv-th {};
   mkenv-th =  makeOverridable ({envs ? envs-dir }:
     # callPackage will use the original `env-th`. To pick up the overridden
     # definition, an updated `env-th` must be supplied--hence the following.
@@ -33,5 +34,4 @@ let
     mkSrc = lib.resources.mkSrc;
     mkEnvironment = lib.make-environment.mkEnvironment;
   });
-  env-th0 = mkenv-th {};
   in env-th0

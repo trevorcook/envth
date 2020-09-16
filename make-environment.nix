@@ -10,14 +10,21 @@ with env-th.lib.add-envs;
 rec
 {
 
-  env-extensions = [ save-attrs
+  # Each extension represents a step of processing. Each extension has a type,
+  # `extension :: self -> super -> attrs`, where all the entities represent
+  # the attribute set that eventually gets passed to `mkDerivation`. `self` is
+  # that final attribute set. It can be used as an input as long as the used
+  # attributes don't define themselves. Super is the current state of the input
+  # attributes. `attrs` are the attributes added/modified in the extension.
+  env-extensions = [ (save-attrs-as "attrs-pre")
+                     add-envs
                      set-default-build-dir
                      gather-resources
                      add-imports
                      make-builder
                      make-env-lib
+                     (save-attrs-as "attrs-post")
                      init-env
-                     add-envs
                     ];
 
   process-attrs =

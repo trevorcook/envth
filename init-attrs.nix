@@ -7,11 +7,18 @@ rec {
   attrDefaults =  diffAttrs;
   diffAttrs = a: b: removeAttrs a (attrNames b);
 
+  # ???
   accum-attrs-by = fs: attr: foldl'
     (acc: f: recursiveUpdate acc (f acc)) attr fs;
 
   save-attrs = self: super@{passthru ? {}, ... }:
-    let f = _: { attrs = super; };
+    /* { passthru = filterAttrs (n: v: n == "passthru" ) super; }; */
+  let f = _: { attrs = super; };
+    in { passthru = accum-attrs-by [f] passthru; };
+      /* __toString = x:""; */
+  save-attrs-as = name: self: super@{passthru ? {}, ... }:
+    /* { passthru = filterAttrs (n: v: n == "passthru" ) super; }; */
+  let f = _: { "${name}" = super; };
     in { passthru = accum-attrs-by [f] passthru; };
       /* __toString = x:""; */
 
