@@ -43,7 +43,7 @@ let
   # Source from Github
   env-th-src = builtins.fetchGit {
       url = https://github.com/trevorcook/env-th.git ;
-      rev = "877caf9c6c8fe7c4edbf00e84b4655acda5f1487"; };
+      rev = "ec9267eec506f3f4e8348a8c73892b7398865507"; };
   # An overlay to to include env-th
   env-th-overlay = self: super: { env-th = import env-th-src self super; };
   # import nixpkgs extended to include env-th
@@ -62,7 +62,32 @@ You should be greeted with a prompt like:
 ```
 Congratulations, you have entered your 1<sup>th</sup> `env-th`
 
-For a more comprehensive example, see [env/sample/sample.nix](https://github.com/trevorcook/env-th/blob/master/envs/sample/sample.nix)
+## Maximal Example
+
+We can initialize a more sophisticated example, [env/sample/sample.nix](https://github.com/trevorcook/env-th/blob/master/envs/sample/sample.nix), by creating a
+new file, `sample.nix`, with the following contents. You should create this
+file in a new, empty directory.
+
+```
+let
+  env-th-src = builtins.fetchGit {
+      url = https://github.com/trevorcook/env-th.git ;
+      rev = "ec9267eec506f3f4e8348a8c73892b7398865507"; };
+  # An overlay to to include env-th
+  env-th-overlay = self: super: { env-th = import env-th-src self super; };
+  # import nixpkgs extended to include env-th
+  nixpkgs = import <nixpkgs> { overlays = [ env-th-overlay ]; };
+in nixpkgs.env-th.envs.sample
+```
+
+Then, launch the environment with:
+```
+> nix-shell sample.nix
+```
+The shell with be launched and greet you with a message explaining what to do
+next. The result should be the definition files written to your directory.
+Perusing those files will demonstrate the concepts that are also explained
+in the sequel of this README.
 
 ## Creating `env-th` Environments
 

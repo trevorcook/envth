@@ -100,7 +100,7 @@ mkEnvironment rec {
     envs.env-a # env-a is merged into env-th.envs on line 10 of this file.
                # Its definition is in scope, this line merges it with the
                # current environment.
-    # ./env-c.nix  # path to env file will be loaded using callPackage
+    ./env-c.nix  # path to env file will be loaded using callPackage
     ];
 
   # addEnvs: Export extra environments.
