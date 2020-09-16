@@ -29,7 +29,7 @@
       #fi
       '';
     env-reload = ''
-      local pth=$ENVTH_BUILDDIR
+      local pth="$(env-home-dir)"
       local enter="$(env-entry-path)"
       local method=$ENVTH_ENTRY
       env-cleanup
@@ -89,7 +89,11 @@
       done
       '';
     env-home-dir = ''
-      ENVTH_BUILDDIR=''${ENVTH_BUILDDIR:=$PWD}
+      if [[ -n $NIX_STORE && -z ''${ENVTH_BUILDDIR##$NIX_STORE*} ]]; then
+        ENVTH_BUILDDIR=''${ENVTH_BUILDDIR:=$PWD}
+      else
+        ENVTH_BUILDDIR=$PWD
+      fi
       echo $ENVTH_BUILDDIR;
       '';
     env-cp-resource = ''
