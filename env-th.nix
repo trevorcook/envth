@@ -17,6 +17,7 @@ let
     rec {
     # This is all the utilities going into making it work.
     lib = rec {
+      # Env-th modules.
       env0 = callPackage ./env-0.nix {};
       init-attrs = callPackage ./init-attrs.nix {};
       init-env = callPackage ./init-env.nix { inherit env0 env-th; };
@@ -26,6 +27,12 @@ let
       resources = callPackage ./resources.nix {};
       shellLib = callPackage ./shellLib.nix {};
       make-environment = callPackage ./make-environment.nix { inherit env-th; };
+
+      # Basic utilities used in some modules.
+      callEnv = env-th: x:
+        if builtins.isPath x then callPackage x { inherit env-th; } else x;
+      diffAttrs = a: b: removeAttrs a (attrNames b);
+
       };
 
     # These are the exported utilities that people will use.

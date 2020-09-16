@@ -1,10 +1,6 @@
 {callPackage, lib, env-th}: with builtins; with lib;
-with env-th.lib.init-attrs;
+with env-th.lib;
 let
-  /* isPath = v: builtins.typeOf v == "path"; */
-  unions = foldr (a: acc: a // acc) {};
-  callEnv = env-th: x:
-      if isPath x then callPackage x { inherit env-th; } else x;
   # unique list, keeping last instances in list.
   uniquer = ls: reverseList (unique (reverseList ls));
 in
