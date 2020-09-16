@@ -90,9 +90,9 @@
       '';
     env-home-dir = ''
       if [[ -n $NIX_STORE && -z ''${ENVTH_BUILDDIR##$NIX_STORE*} ]]; then
-        ENVTH_BUILDDIR=''${ENVTH_BUILDDIR:=$PWD}
-      else
         ENVTH_BUILDDIR=$PWD
+      else
+        ENVTH_BUILDDIR=''${ENVTH_BUILDDIR:=$PWD}
       fi
       echo $ENVTH_BUILDDIR;
       '';
