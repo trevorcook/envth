@@ -1,7 +1,9 @@
 let
   nixpkgs = import <nixpkgs> { overlays = [ env-th-overlay ]; };
   env-th-overlay = self: super: { env-th = import env-th-src self super; };
-  env-th-src = ../../env-th.nix;
+  env-th-src = builtins.fetchGit {
+      url = https://github.com/trevorcook/env-th.git ;
+      rev = "497826e7d0844699728eb411730f881ba78ddae9"; };
 in
 {env-th ? nixpkgs.env-th , figlet ? nixpkgs.figlet}:
 with env-th.addEnvs [extra-envs/env-a.nix];
