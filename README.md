@@ -44,7 +44,7 @@ cat >env-1.nix <<'EOF'
 let
   env-th-src = builtins.fetchGit {
       url = https://github.com/trevorcook/env-th.git ;
-      rev = "b1671be9bae23a14f5b74f4cf9ed82d736caa268"; };
+      rev = "f5a27a34fd48c187cae7c4472a90ea6168a26c25"; };
   env-th-overlay = self: super: { env-th = import env-th-src self super; };
   nixpkgs = import <nixpkgs> { overlays = [ env-th-overlay ]; };
 in
@@ -84,7 +84,7 @@ cat >sample.nix <<'EOF'
 let
   env-th-src = builtins.fetchGit {
       url = https://github.com/trevorcook/env-th.git ;
-      rev = "b1671be9bae23a14f5b74f4cf9ed82d736caa268"; };
+      rev = "f5a27a34fd48c187cae7c4472a90ea6168a26c25"; };
   env-th-overlay = self: super: { env-th = import env-th-src self super; };
   nixpkgs = import <nixpkgs> { overlays = [ env-th-overlay ]; };
 in nixpkgs.env-th.envs.sample
@@ -108,7 +108,7 @@ the definition files from the nix store to the local directory. Part of this is
 replacing the original `sample.nix` with the one from the store. The next time
 you enter the shell, it will be using the local definition.
 
-# Defining `env-th` Environments {#using-mkEnvironment}
+# Defining `env-th` Environments
 
 To create an `env-th` environment, we define environment files with the form
 ```
@@ -141,7 +141,7 @@ this pattern, no defaults need to be supplied in the actual definition.
 let
   env-th-src = builtins.fetchGit {
       url = https://github.com/trevorcook/env-th.git ;
-      rev = "b1671be9bae23a14f5b74f4cf9ed82d736caa268"; };
+      rev = "f5a27a34fd48c187cae7c4472a90ea6168a26c25"; };
   env-th-overlay = self: super: { env-th = import env-th-src self super; };
   nixpkgs = import <nixpkgs> { overlays = [ env-th-overlay ]; };
 in callPackage ./my-environment-file.nix {}
@@ -158,7 +158,7 @@ in a user's nixpkgs config file. This will add the `env-th` attribute to
   let
     env-th-src = builtins.fetchGit {
         url = https://github.com/trevorcook/env-th.git ;
-        rev = "b4836bae89263d9cc70e883f21fffaed9e296272"; };
+        rev = "f5a27a34fd48c187cae7c4472a90ea6168a26c25"; };
   in
   self: super: { env-th = import env-th-src self super; }
   ```
@@ -187,7 +187,7 @@ in a user's nixpkgs config file. This will add the `env-th` attribute to
   > Note> `definition_` is not a keyword attribute.
 
 
-### Other Attributes {#other-attrs}
+### Other Attributes
 
 - `lib`: The special attribute `lib`, if defined, should be a nix attribute set
   of string-valued attributes. Each attribute name will become a function in the
@@ -230,7 +230,7 @@ in a user's nixpkgs config file. This will add the `env-th` attribute to
    into scope whenever the current environment is in scope. No environment
    variables are created with `addEnvs`, however "`passthru`" variables `envs`
    and `envs-added` can be inspected from within the `nix repl`. See also the
-   section on [other `env-th` utilities](#other-envth).
+   section on [other `env-th` utilities](other-env-th-attributes).
 
 - Other `mkDerivation` attributes, i.e. `shellHook`, `buildInputs`, inherit    
   their behavior from `mkDerivation`. That is, `shellHook`, is run when the
@@ -251,11 +251,11 @@ in a user's nixpkgs config file. This will add the `env-th` attribute to
   Note that any additional options must be coercable to strings (numbers,
   paths, sets with a `__toString` attribute, etc.).
 
-# Other `env-th` Attributes {#other-env-th}
+# Other `env-th` Attributes
 
 `env-th` is a nix expression containing a few utilities. The primary is
 `mkEnviornment` and has been discussed above in [Defining `env-th`
-Environments](#using-mkEnvironment). The other attributes of note are
+Environments](defining-env-th-environments). The other attributes of note are
 discussed below.
 
 ## `envs` and `addEnvs`
@@ -281,7 +281,7 @@ the subsequent definition.
     env_a_definition = envs.env-a.definition;
   }
 ```
-The `addEnv` _*attribute*_ ([Other `env-th` Attributes](#other-attrs)) brings
+The `addEnv` _*attribute*_ ([Other Attributes](other-attributes)) brings
 additional environments into scope whenever the calling environment is brought
 into scope. For example, in the sample environment, there is an `env-a.nix`
 which declares `addEnvs = [./env-b.nix]`. In that case, in the above example

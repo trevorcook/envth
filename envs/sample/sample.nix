@@ -1,11 +1,9 @@
 let
   nixpkgs = import <nixpkgs> { overlays = [ env-th-overlay ]; };
   env-th-overlay = self: super: { env-th = import env-th-src self super; };
-  env-th-src = builtins.fetchGit {
-      url = https://github.com/trevorcook/env-th.git ;
-      rev = "0ae3530e7b6e69d30b08b00a39404140501f0995"; };
+  env-th-src = ../../env-th.nix;
 in
-{env-th ? nixpkgs.env-th }:
+{env-th ? nixpkgs.env-th , figlet ? nixpkgs.figlet}:
 with env-th.addEnvs [extra-envs/env-a.nix];
 mkEnvironment rec {
 
@@ -46,20 +44,25 @@ mkEnvironment rec {
   # Special variables ################
   # These variables are treated specially in various ways.
 
+  # buildInputs will add utilities to the environment path.
+  buildInputs = [ figlet ];
+
   # Commands to run upon shell entry.
   shellHook = ''
     b_file="no/such/file"
+    echo "~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~" | lolcat
+    sample-env-th-banner
+    echo "~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~" | lolcat
     cat <<'EOF'
+    Hello from ${name}!
 
-    ##############################
-    Hello from ${name} environment
-
-    Copy the files defining this environment into the current directory
-    with:
+    Copy the files defining this environment into the current
+    directory with:
 
     > env-localize
 
-    Then, inspect "sample.nix", make changes as desired, and reload with
+    Then, inspect "sample.nix", make changes as desired, and
+    reload with
 
     > env-reload
 
@@ -84,6 +87,11 @@ mkEnvironment rec {
       However, b_file is currently $b_file
       EOF
       '';
+    sample-env-th-banner = ''
+    #This function uses "figlet" put on the path in this environment
+    # and "lolcat" inherited from `env-c.nix`;
+    echo "env-th" | figlet | lolcat
+    '';
   };
   # mkEnvironment imports an initial environment, env-0, which
   # contains useful utilities. Try

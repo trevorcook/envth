@@ -19,20 +19,17 @@ rec
         upd-attrs = preprocess-import-attrs env-attrs;
         split-env = split-import-attrs upd-attrs;
         merged-specials = merge-special-attrs attrs split-env.specials;
-
-        dbg =
+        attrs-out = wDbg (split-env.non-specials // merged-specials) ;
+        wDbg = attrs:
           let
             path = ["passthru" "import-data" ];
             old = attrByPath path null attrs;
             new = { inherit env attrs env-attrs upd-attrs split-env
-                            merged-specials env_;
+                            merged-specials env_ attrs-out;
                     importing-name = env-attrs.name;
                     import-data = old; };
           in recursiveUpdate attrs (setAttrByPath path new);
-      in
-        /* upd-attrs // merged-specials // dbg; */
-
-        split-env.non-specials // merged-specials // dbg;
+      in attrs-out;
 
     split-import-attrs = attrs:
       let specials = intersectAttrs special-attr.defaults attrs;
