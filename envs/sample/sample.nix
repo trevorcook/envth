@@ -39,7 +39,7 @@ mkEnvironment rec {
   # In the running environment, the following variables will point
   # to locations in /nix/store. The resources can be localized from
   # within the running environment with `env-localize`
-  b-file = mkSrc ./b-dir/b-file.txt;
+  b_file = mkSrc ./b-dir/b-file.txt;
   extra_envs = mkSrc ./extra-envs;
 
 
@@ -79,9 +79,9 @@ mkEnvironment rec {
     sample-show-b-file = ''
       cat <<EOF
       In function show-b-file
-      \''${b-file} is ${b-file}
-      \''${b-file.local} is ${b-file.local}
-      However, b-file is currently $b-file
+      \''${b_file} is ${b_file}
+      \''${b_file.local} is ${b_file.local}
+      However, b_file is currently $b_file
       EOF
       '';
   };
@@ -100,7 +100,7 @@ mkEnvironment rec {
     envs.env-a # env-a is merged into env-th.envs on line 10 of this file.
                # Its definition is in scope, this line merges it with the
                # current environment.
-    ./env-c.nix  # path to env file will be loaded using callPackage
+    extra-envs/env-c.nix  # path to env file will be loaded using callPackage
     ];
 
   # addEnvs: Export extra environments.

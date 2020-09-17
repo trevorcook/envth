@@ -35,18 +35,17 @@ hosts or using `nix-env` to install the environment.
 
 ## Minimal Example
 
-Save the following code to a file, `env-1.nix`, then launch
-`nix-shell env-1.nix`.
+Copy and paste the following into the command line. It creates a file,
+`env-1.nix`, in the current directory and launches a nix shell. You might want
+to create and move to a new directory first.
 
 ```
+cat >env-1.nix <<'EOF'
 let
-  # Source from Github
   env-th-src = builtins.fetchGit {
       url = https://github.com/trevorcook/env-th.git ;
-      rev = "ec9267eec506f3f4e8348a8c73892b7398865507"; };
-  # An overlay to to include env-th
+      rev = "b1671be9bae23a14f5b74f4cf9ed82d736caa268"; };
   env-th-overlay = self: super: { env-th = import env-th-src self super; };
-  # import nixpkgs extended to include env-th
   nixpkgs = import <nixpkgs> { overlays = [ env-th-overlay ]; };
 in
 { env-th ? nixpkgs.env-th }: with env-th;
@@ -54,42 +53,62 @@ mkEnvironment {
  name = "env-1";
  definition = ./env-1.nix;
  }
+EOF
+nix-shell env-1.nix
+
 ```
 
 You should be greeted with a prompt like:
 ```
 [env-1]$USER@$HOST:dir$
 ```
-Congratulations, you have entered your 1<sup>th</sup> `env-th`
+Congratulations, you have entered your 1<sup>th</sup> `env-th`. Use
+`<ctrl-d>` or `exit` to return to your usual shell.
+
+### Explanation
+
+In the above code, the lines between the `EOF` are a "Here document". They get
+piped verbatim into the standard `cat` utility, which then saves them as
+`env-1.nix`. In `env-1.nix`, the `let` bindings add the `env-th` attribute set
+ to `<nixpkgs>`. The `in` expression is a function with the default
+`nixpkgs.env-th` provided. The `with` expression brings `mkEnvironment` into
+scope, and `mkEnvironment` makes a shell environment named "`env-1`" and whose
+definition is the current file, `env-1.nix`.
 
 ## Maximal Example
 
-We can initialize a more sophisticated example, [env/sample/sample.nix](https://github.com/trevorcook/env-th/blob/master/envs/sample/sample.nix), by creating a
-new file, `sample.nix`, with the following contents. You should create this
-file in a new, empty directory.
+We can initialize a more sophisticated example, [env/sample/sample.nix](https://github.com/trevorcook/env-th/blob/master/envs/sample/sample.nix), by copying the following to the command line. Again, you should do this in a new directory.
 
 ```
+cat >sample.nix <<'EOF'
 let
   env-th-src = builtins.fetchGit {
       url = https://github.com/trevorcook/env-th.git ;
-      rev = "ec9267eec506f3f4e8348a8c73892b7398865507"; };
-  # An overlay to to include env-th
+      rev = "b1671be9bae23a14f5b74f4cf9ed82d736caa268"; };
   env-th-overlay = self: super: { env-th = import env-th-src self super; };
-  # import nixpkgs extended to include env-th
   nixpkgs = import <nixpkgs> { overlays = [ env-th-overlay ]; };
 in nixpkgs.env-th.envs.sample
-```
+EOF
+nix-shell sample.nix
 
-Then, launch the environment with:
 ```
-> nix-shell sample.nix
-```
-The shell with be launched and greet you with a message explaining what to do
+The shell will be launched and greet you with a message explaining what to do
 next. The result should be the definition files written to your directory.
 Perusing those files will demonstrate the concepts that are also explained
 in the sequel of this README.
 
-## Creating `env-th` Environments
+### Explanation
+
+Like in the minimal example, this code creates and launches a new nix file. Like
+in the minimal example, the `let` binding adds the `env-th` attribute to
+`nixpkgs`. The `in` expression, however, just references the included
+environment, `env-th.envs.sample`, rather than defining a new one. On entering
+the shell, a message is printed that says to run `env-localize`, which copies
+the definition files from the nix store to the local directory. Part of this is
+replacing the original `sample.nix` with the one from the store. The next time
+you enter the shell, it will be using the local definition.
+
+# Defining `env-th` Environments {#using-mkEnvironment}
 
 To create an `env-th` environment, we define environment files with the form
 ```
@@ -103,7 +122,7 @@ convention is that it both provides that the environment can be entered with
 `nix-shell env.nix` and that it can be imported inside the body of another
 environment.
 
-### Default Arguments
+## Default Arguments
 
 Default arguments can be supplied using something like the following
 ```
@@ -111,10 +130,30 @@ let pkgs = import <nixpkgs> { };
 in { pkg1 ? pkgs.pkg1, pkg2 ? pkgs.pkg2 } :
 ```
 The above demonstration of `env-1` shows shows how a default `env-th` can be
-supplied by providing a `<nixpkgs>` overlay. Alternatively, an overlay can be
-supplied in the user config directory:
-  (linux):
-   `~/.config/nixpkgs/overlays/env-th.nix`:
+supplied by providing a `<nixpkgs>` overlay.
+
+Another pattern for providing default arguments is to split the definition into
+two files, a `shell.nix` and the definition file. In this case, the `shell.nix`
+is a simple file that uses `callPackages` to call the definition file. Using
+this pattern, no defaults need to be supplied in the actual definition.
+
+```
+let
+  env-th-src = builtins.fetchGit {
+      url = https://github.com/trevorcook/env-th.git ;
+      rev = "b1671be9bae23a14f5b74f4cf9ed82d736caa268"; };
+  env-th-overlay = self: super: { env-th = import env-th-src self super; };
+  nixpkgs = import <nixpkgs> { overlays = [ env-th-overlay ]; };
+in callPackage ./my-environment-file.nix {}
+```
+
+### User Overlay
+
+Instead of providing an `env-th` overlay in each nix file. One can be supplied
+in a user's nixpkgs config file. This will add the `env-th` attribute to
+`<nixpkgs>` any time it is invoked, and therefore make it available with
+`callPackages`. For linux, add the following file to  `~/.config/nixpkgs/overlays/env-th.nix`:
+
   ```
   let
     env-th-src = builtins.fetchGit {
@@ -123,18 +162,32 @@ supplied in the user config directory:
   in
   self: super: { env-th = import env-th-src self super; }
   ```
-> Use `nix-prefetch-git https://github.com/trevorcook/env-th.git` to get
+> Note: Use `nix-prefetch-git https://github.com/trevorcook/env-th.git` to get
   the recent `rev`
 
-### Definition Body
+## Definition Body
 
-#### Required Attributes
+### Required Attributes
 
-There are two required attributes in every `mkEnvironment` derivation: `name`
-and `defintion`. The `definition` attribute must be a nix path that refers to
-the environment file itself.
+- `name`: The name of the environment. For one, this attribute will be used to
+  create the environment's build output, `enter-<name>`. For another, users may
+  add environments to `env-th` and reference them inside their definition, a la:
+  ```
+  with (env-th.addEnvs [ ./my-env.nix ]); mkDerivation {
+   ... envs.my-env-name ...
+  }
+  ```
+- `definition`: This attribute must be a nix path that refers to the
+  environment file itself. If splitting the definition into multiple files, the
+  main entry point must be the `definition` attribute, e.g.:
+  ```
+  definition = ./shell.nix;
+  definition_ = env-th.mkSrc ./my-env.nix;
+  ```
+  > Note> `definition_` is not a keyword attribute.
 
-#### Other Attributes
+
+### Other Attributes {#other-attrs}
 
 - `lib`: The special attribute `lib`, if defined, should be a nix attribute set
   of string-valued attributes. Each attribute name will become a function in the
@@ -167,30 +220,101 @@ the environment file itself.
   scope for the in scope `env-th`. `b-env.nix` will be called using overloaded
   `an-arg` value.
 
+  The libraries and variables of all imported environments will be added
+  to the scope of the current environment. Later imports shadow earlier
+  imports, and the calling environment's variables shadow all imports. There
+  are exceptions: `buildInputs` and `libs` of imported are added to the current
+  environment.
+
+- `addEnvs`: This attribute expects a list of environments that will be brought
+   into scope whenever the current environment is in scope. No environment
+   variables are created with `addEnvs`, however "`passthru`" variables `envs`
+   and `envs-added` can be inspected from within the `nix repl`. See also the
+   section on [other `env-th` utilities](#other-envth).
+
 - Other `mkDerivation` attributes, i.e. `shellHook`, `buildInputs`, inherit    
   their behavior from `mkDerivation`. That is, `shellHook`, is run when the
   environment is entered, `buildInputs` are added to the `PATH` (for one). Any
-  other attributes used by `mkDerivation` should probably work as well.
+  other attributes used by `mkDerivation` might work as well, though they are
+  untested and might not make sense in the `mkEnvironment` context.
 
-> The libraries and variables of all imported environments will be added
-  to the scope of the current environment. Later imports shadow earlier
-  imports. A notable exception to this is `buildInputs`, whose definitions
-  combine.
-
-- User defined attributes: Per `mkDerivation` attribute sets, additional
-  attributes will be exported to the resulting environment. For example,
-  defining
+- User defined attributes: Per the behavior of `mkDerivation` attribute sets,
+  additional attributes will be exported to the resulting environment. For
+  example, defining
   ```
   NIX_SSHOPTS="-o ProxyJump=me@jumphost";
   ```
-  will create the environment variable `NIX_SSHOPTS`, which incidentally is
+  will create the environment variable `NIX_SSHOPTS` (incidentally, this is
   passed to the underlying `scp/ssh` during `env-ssh`. This option, in
-  particular, tunnels the copy through an intermediate host "`jumphost`".
+  particular, tunnels the copy through an intermediate host "`jumphost`").
 
   Note that any additional options must be coercable to strings (numbers,
   paths, sets with a `__toString` attribute, etc.).
 
-## Using the environment
+# Other `env-th` Attributes {#other-env-th}
+
+`env-th` is a nix expression containing a few utilities. The primary is
+`mkEnviornment` and has been discussed above in [Defining `env-th`
+Environments](#using-mkEnvironment). The other attributes of note are
+discussed below.
+
+## `envs` and `addEnvs`
+
+The `env-th` library contains a bundle of environments `env-th.envs`. When
+`env-th` is in-scope in a nix expression, the `envs` environments may be
+referenced as well. For instance, the `sample` environment defines a variable,
+`varSample1`, and can be referenced as in the following example:
+
+```nix
+  with env-th; "varSample1 is: ${envs.sample.varSample1}"
+```
+
+Additional libraries can be added to `env-th.envs` by using `env-th.addEnvs`.
+`addEnvs` expects a list of environments and returns a new `env-th`. The list
+of supplied environments may depend on the initial set of `env-th.envs`, as well
+as environments appearing _before_ them in the list. For example, the following
+would add `./env-a.nix` to the set of environments, allowing it to be used in
+the subsequent definition.
+```nix
+  {env-th}: with env-th.addEnvs [ ./env-a.nix ]; mkEnvironment {
+    # [various definitions ]
+    env_a_definition = envs.env-a.definition;
+  }
+```
+The `addEnv` _*attribute*_ ([Other `env-th` Attributes](#other-attrs)) brings
+additional environments into scope whenever the calling environment is brought
+into scope. For example, in the sample environment, there is an `env-a.nix`
+which declares `addEnvs = [./env-b.nix]`. In that case, in the above example
+`env-th.addEnv [./env-a.nix]` would add both `env-a` and `env-b` to the
+resulting `envs` (thus allowing attributes such as
+`env_b_definition = envs.env-b.definition;` to be defined).
+
+
+## `mkSrc`
+
+`env-th.mkSrc` is used to tag files that may need to be "localized", that is,
+copied from the nix store to the local filesystem. This utility is used within
+a `mkEnvironment` derivation in expressions such as the following attribute
+defintion:
+```
+  xFile = env-th.mkSrc ./xFile.md;
+```
+`mkSrc` expects a single path as an input. Files will be copied individually,
+supplied directories will be copied whole.
+
+`mkSrc` returns an attribute set containing the attribute `local` (among
+others). As a result, resources can be referenced within the `mkEnvironment` in
+two ways. Use the `local` attribute, e.g. `xFile.local`, to refer to the local
+copy of the file. Reference the return value, e.g. `xFile`, or the `store`
+attribute to reference the `/nix/store/` copy.
+
+Files are localized to a location corresponding to the local path supplied to
+`mkSrc`. The copy is placed relative to the `ENVTH_BUILDDIR`, which is the
+directory of the `definition` file (in the case of entering the environment
+through `nix-shell`) or the current directory (in the case of entering by
+invoking the build product `enter-<name>`).
+
+# Using the environment
 
 When in the environment, just go about your normal command-line shell business.
 The variables and functions defined by the environment will be in scope. The
@@ -203,11 +327,17 @@ environment based on changes to its definition. Other notable functions are
 `env-ssh`, which is used to ssh into foreign hosts (uses `NIX_SSHOPTS`) and
 `env-su` which is used to switch user in the current environment.
 
-### Localization
+## Installing
+
+Environments can be installed using `nix-env`. For instance, the currently
+active environment can be installed with `nix-env -if $definition`. This will
+add the executable `enter-<name>` to the current user's PATH.
+
+## Localization
 
 The default library function `env-localize` provides a means of copying
-environment resources from the nix store. More precisely, it will copy any
-file attribute in the environment that has been tagged with `mkSrc`, as in
+environment resources from the nix store. More precisely, it will copy the
+definition file and any file attribute in the environment that has been tagged with `mkSrc`, as in
 ```
   xFile = env-th.mkSrc ./xFile.md;
 ```
@@ -215,7 +345,3 @@ The copy will be placed relative to the `ENVTH_BUILDDIR`, which is the directory
 of the `definition` file (in the case of entering the environment through
 `nix-shell`) or the current directory (in the case of entering by invoking
 the build product).
-
-Resources can be referenced within the `mkEnvironment` in two ways. Using, for
-instance, `xFile.local` can be used to refer to the local file, while `xFile`
-refers to the `/nix/store/` copy.
