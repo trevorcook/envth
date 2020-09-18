@@ -11,7 +11,7 @@
     # BUILDING The environment
     env-build = ''
       if [[ $ENVTH_ENTRY != bin ]]; then
-        mkdir -p $ENVTH_BUILDDIR/.env-th
+        mkdir -p $(env-home-dir)/.env-th
         ENVTH_OUT="$(nix-build --quiet $ENVTH_BUILDDIR/$definition \
           -o $ENVTH_BUILDDIR/.env-th/result)"
       fi
@@ -22,11 +22,7 @@
             ENVTH_OUT ENVTH_PATHS_IN_STORE
       '';
     env-entry-path = ''
-      #if [[ $ENVTH_ENTRY == bin ]]; then
-      #  echo -n "$ENVTH_OUT/bin/enter-$name"
-      #else
-        echo -n "$(env-build)/bin/enter-$name"
-      #fi
+      echo -n "$(env-build)/bin/enter-$name"
       '';
     env-reload = ''
       local pth="$(env-home-dir)"
@@ -40,7 +36,7 @@
       fi
       '';
     env-reload-command = ''
-      local pth=$ENVTH_BUILDDIR
+      local pth=$(env-home-dir)
       local enter="$(env-entry-path)"
       local method=$ENVTH_ENTRY
       env-cleanup
@@ -61,7 +57,7 @@
       '';
     env-ssh-enter = ''
       # Mind the quotes on the called commands.
-      # e.g. env-ssh-no-update HOST --command '"echo hi; return"'
+      # e.g. env-ssh-enter HOST --command '"echo hi; return"'
       local enter="$1"; shift
       local ssh_cond
       local host="$1"; shift
