@@ -3,7 +3,7 @@ let
   env-th-overlay = self: super: { env-th = import env-th-src self super; };
   env-th-src = builtins.fetchGit {
       url = https://github.com/trevorcook/env-th.git ;
-      rev = "7935ba0601db1122ff31c5c2f75ece10a6b317d3"; };
+      rev = "44dea6f9eb64d27300c70c070048088d9d3cb0aa"; };
 in
 {env-th ? nixpkgs.env-th , figlet ? nixpkgs.figlet}:
 with env-th.addEnvs [extra-envs/env-a.nix];

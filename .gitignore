@@ -1,3 +1,4 @@
 trash/
 result/
 .env-th/
+*prevHash
