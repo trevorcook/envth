@@ -1,0 +1,10 @@
+{ env-th } : with env-th;
+mkEnvironment rec
+{ name = "@ENVNAME@";
+  definition = ./shell.nix;
+  definition_ = mkSrc ./@ENVNAME@.nix;
+  shellHook = ''
+    '';
+  buildInputs = [] ;
+  lib = {};
+}

@@ -1,0 +1,8 @@
+let
+  pkgs = import <nixpkgs> {};
+in with pkgs;
+{
+  inherit pkgs;
+  @ENVNAME@ = callPackage ./@ENVNAME@.nix {};
+  shell = callPackage ./@ENVNAME@.nix {};
+}
