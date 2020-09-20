@@ -44,7 +44,7 @@ cat >env-1.nix <<'EOF'
 let
   env-th-src = builtins.fetchGit {
       url = https://github.com/trevorcook/env-th.git ;
-      rev = "59c712450b5f54c6b8f3a3b61f9cbb1670817fe8"; };
+      rev = "ad125ff418fc9e8d9c9389a203a7ba66b9556f27"; };
   env-th-overlay = self: super: { env-th = import env-th-src self super; };
   nixpkgs = import <nixpkgs> { overlays = [ env-th-overlay ]; };
 in
@@ -84,7 +84,7 @@ cat >sample.nix <<'EOF'
 let
   env-th-src = builtins.fetchGit {
       url = https://github.com/trevorcook/env-th.git ;
-      rev = "59c712450b5f54c6b8f3a3b61f9cbb1670817fe8"; };
+      rev = "ad125ff418fc9e8d9c9389a203a7ba66b9556f27"; };
   env-th-overlay = self: super: { env-th = import env-th-src self super; };
   nixpkgs = import <nixpkgs> { overlays = [ env-th-overlay ]; };
 in nixpkgs.env-th.envs.sample
@@ -141,7 +141,7 @@ this pattern, no defaults need to be supplied in the actual definition.
 let
   env-th-src = builtins.fetchGit {
       url = https://github.com/trevorcook/env-th.git ;
-      rev = "59c712450b5f54c6b8f3a3b61f9cbb1670817fe8"; };
+      rev = "ad125ff418fc9e8d9c9389a203a7ba66b9556f27"; };
   env-th-overlay = self: super: { env-th = import env-th-src self super; };
   nixpkgs = import <nixpkgs> { overlays = [ env-th-overlay ]; };
 in callPackage ./my-environment-file.nix {}
@@ -158,7 +158,7 @@ in a user's nixpkgs config file. This will add the `env-th` attribute to
   let
     env-th-src = builtins.fetchGit {
         url = https://github.com/trevorcook/env-th.git ;
-        rev = "59c712450b5f54c6b8f3a3b61f9cbb1670817fe8"; };
+        rev = "ad125ff418fc9e8d9c9389a203a7ba66b9556f27"; };
   in
   self: super: { env-th = import env-th-src self super; }
   ```
