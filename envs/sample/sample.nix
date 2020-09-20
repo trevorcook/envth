@@ -1,10 +1,9 @@
 let
-  nixpkgs = import <nixpkgs> { };
-  /* nixpkgs = import <nixpkgs> { overlays = [ env-th-overlay ]; };
-  env-th-overlay = import ../../env-th.nix; */
-  /* env-th-src = builtins.fetchGit {
+  nixpkgs = import <nixpkgs> { overlays = [ env-th-overlay ]; };
+  env-th-overlay = import ../../env-th.nix;
+  env-th-src = builtins.fetchGit {
       url = https://github.com/trevorcook/env-th.git ;
-      rev = "c462ece4a8f96f683a6998c8315146c99934cd91"; }; */
+      rev = "59c712450b5f54c6b8f3a3b61f9cbb1670817fe8"; };
 in
 {env-th ? nixpkgs.env-th , figlet ? nixpkgs.figlet}:
 with env-th.addEnvs [ extra-envs/env-a.nix ];

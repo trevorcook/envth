@@ -3,7 +3,7 @@ let
   env-th-overlay = self: super: { env-th = import env-th-src self super; };
   env-th-src = builtins.fetchGit {
       url = https://github.com/trevorcook/env-th.git ;
-      rev = "c462ece4a8f96f683a6998c8315146c99934cd91"; };
+      rev = "59c712450b5f54c6b8f3a3b61f9cbb1670817fe8"; };
 in rec {
   inherit nixpkgs;
   inherit (nixpkgs) lib callPackage env-th;
