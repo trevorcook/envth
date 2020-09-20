@@ -2,12 +2,13 @@ self: super:
 with builtins; with self.lib;
 let
   callPackage = self.callPackage;
-  envs-dir =
-      let
+
+  envs-dir = import ./envs/default.nix self super;
+  /* envs-dir =  let
         envsdir = filterAttrs (n: v: n != "README.md") (readDir ./envs);
         mkEnv = n: _: callPackage (./envs + "/${n}") {};
       in
-        mapAttrs mkEnv envsdir;
+        mapAttrs mkEnv envsdir; */
 
   env-th0 = mkenv-th {};
   mkenv-th =  makeOverridable ({envs ? envs-dir }:

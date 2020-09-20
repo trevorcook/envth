@@ -1,12 +1,13 @@
 let
-  nixpkgs = import <nixpkgs> { overlays = [ env-th-overlay ]; };
-  env-th-overlay = self: super: { env-th = import env-th-src self super; };
-  env-th-src = builtins.fetchGit {
+  nixpkgs = import <nixpkgs> { };
+  /* nixpkgs = import <nixpkgs> { overlays = [ env-th-overlay ]; };
+  env-th-overlay = import ../../env-th.nix; */
+  /* env-th-src = builtins.fetchGit {
       url = https://github.com/trevorcook/env-th.git ;
-      rev = "d02cf72ddd0cb975bb10cf444bd1aba557318bc6"; };
+      rev = "c462ece4a8f96f683a6998c8315146c99934cd91"; }; */
 in
 {env-th ? nixpkgs.env-th , figlet ? nixpkgs.figlet}:
-with env-th.addEnvs [extra-envs/env-a.nix];
+with env-th.addEnvs [ extra-envs/env-a.nix ];
 mkEnvironment rec {
 
   # REQUIRED ARGS ####################
