@@ -29,8 +29,8 @@ rec {
     let
       make-new = env-th: env_:
         let env = callEnv env-th env_;
-            /* envs = env-th.envs // (setAttrByPath [env.name] env); */
-            envs = env.envs // (setAttrByPath [env.name] env);
+            envs = env-th.envs // env.envs-added // (setAttrByPath [env.name] env);
+            /* envs = env.envs // (setAttrByPath [env.name] env); */
         in env-th.override { inherit envs; };
     in foldl' make-new env-th ;
 
