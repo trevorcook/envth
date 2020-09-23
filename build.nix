@@ -19,10 +19,16 @@ rec {
           --set ENVTH_OUT $out
         makeWrapper $this_enter_env_dev $out/bin/enter-${name}-dev \
           --set ENVTH_OUT $out
+        makeWrapper $this_enter_env_sh $out/bin/enter-${name}-non-interactive \
+          --set ENVTH_OUT $out \
+          --set NONINTERACTIVE 1
         '';
 
       this_enter_env_sh = writeScript "enter-${name}" ''
         #!${bash}/bin/bash
+        # enter-${name} [CommandString]
+        # enter the environment, optionally running the CommandString
+
         export ENVTH_ENTRY=bin
 
         # Inherit the build environment, modify to be more like nix-shell env
@@ -38,8 +44,31 @@ rec {
         source ${stdenv}/setup
         export PATH="$PATH:$TMPPATH"
 
-        exec ${bashInteractive}/bin/bash --init-file <(echo "$shellHook") "$@"
+        # This function is for nix-shell compatability with the --command
+        # option. Commands may be given as options, e.g,
+        #  - for issuing commands in the environment:
+        #     > enter-this-env "echo this; echo that"
+        #  - for issuing commands in the environment, then staying in env:
+        #     > enter-this-env "echo this; echo that; return"
+        # No options is an implicit "return"
+        evalargs(){
+          local cmds="$@"
+          [[ -z $cmds ]] && cmds=return
+          eval "$cmds"
+          exit
+        }
+        # non-interactive is to ensure that the shell hangs up correctly
+        export -f evalargs
+        if [[ -z $NONINTERACTIVE ]]; then
+          exec ${bashInteractive}/bin/bash --init-file <(echo "$shellHook
+        evalargs \"$@\"")
+        else
+          exec ${bashInteractive}/bin/bash -c "$shellHook
+          $@"
+        fi
+
         '';
+
 
       this_enter_env_dev = writeScript "enter-${name}-dev" ''
         #!${bash}/bin/bash

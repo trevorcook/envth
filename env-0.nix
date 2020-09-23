@@ -41,7 +41,8 @@
       local method=$ENVTH_ENTRY
       env-cleanup
       if [[ $method == bin ]]; then
-        exec $enter --command "$@ ; return"
+        #exec $enter --command "$@ ; return"
+        exec $enter "$@"
       else
         exec nix-shell $pth/$definition --command "$@ ; return"
       fi
@@ -57,16 +58,17 @@
       '';
     env-ssh-enter = ''
       # Mind the quotes on the called commands.
-      # e.g. env-ssh-enter HOST --command '"echo hi; return"'
+      # e.g. env-ssh-enter HOST '"echo hi; return"'
       local enter="$1"; shift
       local ssh_cond
       local host="$1"; shift
       echo "#############"
       echo "Will connect to $host"
-      echo "With args: $@"
+      echo "With args: \"$@\""
+      echo "~~~~~~~~~~~~~"
+      echo  ssh $NIX_SSHOPTS "$host" -t "bash -i -- $enter \"$@\""
       echo "#############"
-      echo ssh $NIX_SSHOPTS "$host" -t "bash -i -- $enter $@"
-      ssh $NIX_SSHOPTS "$host" -t "bash -i -- $enter $@"
+      ssh $NIX_SSHOPTS "$host" -t "bash -i -- $enter \"$@\""
       ssh_cond=$?
       echo "--- Returned to $(hostname) ---"
       return $ssh_cond
