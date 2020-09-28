@@ -1,4 +1,4 @@
-{lib, env0, writeTextFile, symlinkJoin, pandoc, runCommand }:
+{lib, env0, writeTextFile, symlinkJoin, pandoc, runCommand, tree }:
 with builtins;
 with lib;
 let # unique list, keeping last instances in list.
@@ -14,7 +14,7 @@ rec {
 
     '';
   mkShellLibDoc = name: lib-file: runCommand "${name}.html" {} ''
-    ${pandoc}/bin/pandoc -s --metadata pagetitle=${name} \
+    ${pandoc}/bin/pandoc -f markdown -s --metadata pagetitle=${name} \
       <(  cat <( echo '```bash' ) \
       ${lib-file}  \
       <( echo '```' ) ) \
@@ -33,11 +33,26 @@ rec {
     # Make a Version of the Shell Functions as HTML
     mkdir -p $out/doc/html
     ln -s ${mkShellLibDoc name lib-file} $out/doc/html/${name}.html
+    ${tree}/bin/tree -H "$out/doc/html/" -L 1 --noreport --charset utf-8 \
+      $out/doc/html/. > $out/doc/html/index.html
+    '';
+
+  mkImportLibs = name: libs: runCommand name { inherit libs; } ''
+    #NOTE: This command will fail (probably) for env names with spaces.
+    mkdir -p $out/doc/html
+    for l in $libs; do
+      for f in $( ls $l/doc/html/. ); do
+        if [[ "$f" != index.html ]]; then
+          ln -s "$l/doc/html/$f" "$out/doc/html/$f"
+        fi
+      done
+    done
+    ${tree}/bin/tree -H "$out/doc/html/" -L 1 --noreport --charset utf-8 \
+      $out/doc/html/. > $out/doc/html/index.html
     '';
 
   mkEnvLib = attrs@{name, lib ? {}, ...}:
     let
-      /* attrs' = filterAttrs (n: v: n != "lib") attrs; */
       attrs' = filterAttrs (n: v: all (x: n != x)
                     ["lib" "passthru" "ENVTH_DRV"])
                     attrs.passthru.attrs-pre;
@@ -74,9 +89,10 @@ rec {
       inherit lib;
       import_libs = import_libs_out;
       importLibsHook = concatMapStrings sourceLib import_libs_out;
-      libs_doc = symlinkJoin { inherit name;
+      libs_doc = mkImportLibs name import_libs_out;
+      /* libs_doc = symlinkJoin { inherit name;
         paths = [ import_libs_out ];
-        };
+        }; */
     };
 
 }

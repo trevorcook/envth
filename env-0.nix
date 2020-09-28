@@ -19,8 +19,11 @@ rec {
     env-build = ''
       if [[ $ENVTH_ENTRY != bin ]]; then
         mkdir -p $(env-home-dir)/.env-th
-        ENVTH_OUT="$(nix-build --quiet $ENVTH_BUILDDIR/$definition \
-          -o $ENVTH_BUILDDIR/.env-th/result)"
+        echo "building... ($ENVTH_BUILDDIR/.env-th/build.log)"
+        nix-build "$@" -o "$ENVTH_BUILDDIR/.env-th/result" \
+          "$ENVTH_BUILDDIR/$definition" \
+          &> "$ENVTH_BUILDDIR/.env-th/build.log"
+        ENVTH_OUT="$( readlink $ENVTH_BUILDDIR/.env-th/result )"
       fi
       echo $ENVTH_OUT
             '';
@@ -36,22 +39,12 @@ rec {
       local enter="$(env-entry-path)"
       local method=$ENVTH_ENTRY
       env-cleanup
+      # Format inputs run in next env and not exit immediately.
+      cmds="$@" ; [[ -z $cmds ]] && cmds=return ; cmds="$cmds ; return"
       if [[ $method == bin ]]; then
-        exec $enter "$*"
+        exec $enter "$cmds"
       else
-        exec nix-shell $pth/$definition --command "$* ; return"
-      fi
-      '';
-    env-reload-command = ''
-      local pth=$(env-home-dir)
-      local enter="$(env-entry-path)"
-      local method=$ENVTH_ENTRY
-      env-cleanup
-      if [[ $method == bin ]]; then
-        #exec $enter --command "$@ ; return"
-        exec $enter "$@"
-      else
-        exec nix-shell $pth/$definition --command "$@ ; return"
+        exec nix-shell $pth/$definition --command "$cmds"
       fi
       '';
 
@@ -182,8 +175,10 @@ rec {
       local file name
       # Show all libs in order of their import, but point to the
       # Joined directory where all imports are present.
-      for i in $import_libs; do
-        file=$(ls $i/doc/html/)
+      for l in $import_libs; do
+        for i in $(ls $l/doc/html); do
+          [[ $i != index.html ]] && file=$i
+        done
         name="''${file%.*}"
         cat <<EOF
       $name ~~~~~~~~~~~~~~~~~~~~~~~~~
@@ -193,7 +188,7 @@ rec {
       EOF
       done
       echo "# Links to all contained libs can be found at:
-      file://$libs_doc/doc/html"
+      file://$libs_doc/doc/html/index.html"
       '';
 
   };

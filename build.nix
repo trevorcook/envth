@@ -58,6 +58,7 @@ rec {
           exit
         }
         # non-interactive is to ensure that the shell hangs up correctly
+        # (ran into problems with pdsh and entering the shell)
         export -f evalargs
         if [[ -z $NONINTERACTIVE ]]; then
           exec ${bashInteractive}/bin/bash --init-file <(echo "$shellHook
