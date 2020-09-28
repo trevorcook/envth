@@ -30,9 +30,9 @@
       local method=$ENVTH_ENTRY
       env-cleanup
       if [[ $method == bin ]]; then
-        exec $enter
+        exec $enter "$*"
       else
-        exec nix-shell $pth/$definition
+        exec nix-shell $pth/$definition --command "$* ; return"
       fi
       '';
     env-reload-command = ''
