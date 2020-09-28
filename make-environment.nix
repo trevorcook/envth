@@ -30,7 +30,11 @@ rec
   process-attrs =
     foldl composeExtensions (_: super: super) env-extensions;
 
-  mkEnvironment = mkEnvironmentWith process-attrs;
+  /* mkEnvironment = attrs:
+    let
+      final = mkEnvironmentWith process-attrs (attrs //{ inherit final; });
+    in final;      */
+  mkEnvironment = mkEnvironmentWith process-attrs ;
   mkEnvironmentWith = f: attrs:
     let
       proc = exts: fix (extends exts (_: attrs));

@@ -1,10 +1,17 @@
 {  }:
-{
+rec {
   name = "env-0";
   shellHook = ''
     env-set-PS1
     ENVTH_OUT=''${ENVTH_OUT:=$out}
     '';
+  passthru.attrs-pre = { inherit name definition;
+    ENVTH_BUILDDIR = "";
+    ENVTH_RESOURCES = "";
+    ENVTH_ENTRY = "";
+    ENVTH_DRV = "";
+    ENVTH_OUT = "";
+    ENVTH_PATHS_IN_STORE = ""; };
   definition = ./env-0.nix;
   lib = {
 
@@ -158,5 +165,36 @@
     env-fst = ''
       echo $1
       '';
+    arg-n = ''
+      if [[ $# < 2 ]]; then
+        echo 'arg-n: needs 2 or more arguments' > /dev/stderr
+        return;
+      fi
+      local n=$1
+      if [[ $# -le $n ]] ; then
+        echo 'arg-n: index out of bounds' > /dev/stderr
+        return;
+      fi
+      for i in $(seq $n); do shift; done
+      echo $1
+      '';
+    env-lib = ''
+      local file name
+      # Show all libs in order of their import, but point to the
+      # Joined directory where all imports are present.
+      for i in $import_libs; do
+        file=$(ls $i/doc/html/)
+        name="''${file%.*}"
+        cat <<EOF
+      $name ~~~~~~~~~~~~~~~~~~~~~~~~~
+      $($name-lib)
+      ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+      EOF
+      done
+      echo "# Links to all contained libs can be found at:
+      file://$libs_doc/doc/html"
+      '';
+
   };
 }
