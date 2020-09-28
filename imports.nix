@@ -9,22 +9,21 @@ rec
     # Add imports overlay
     add-imports = self: {imports ? [],...}@attrs:
       let merged-attrs = foldr merge-import-env attrs imports;
-      in post-process-merged-attrs merged-attrs;
+      in merged-attrs;
 
     # Merge an imported env into the current attribute set.
     merge-import-env = env_: attrs:
       let
         env = callEnv env-th env_;
         env-attrs = env.passthru.attrs-post;
-        upd-attrs = preprocess-import-attrs env-attrs;
-        split-env = split-import-attrs upd-attrs;
+        split-env = split-import-attrs env-attrs;
         merged-specials = merge-special-attrs attrs split-env.specials;
         attrs-out = wDbg (split-env.non-specials // merged-specials) ;
         wDbg = attrs:
           let
             path = ["passthru" "import-data" ];
             old = attrByPath path null attrs;
-            new = { inherit env attrs env-attrs upd-attrs split-env
+            new = { inherit env attrs env-attrs split-env
                             merged-specials env_ attrs-out;
                     importing-name = env-attrs.name;
                     import-data = old; };
@@ -73,26 +72,5 @@ rec
         };
       defaults = mapAttrs (_: v: v.default) special-attr.definition;
     };
-
-    # After loading the attributes to merge, do this.
-    preprocess-import-attrs = { lib ? [], import_libs ? [], ...}@attrs:
-      let
-        new-import_libs = import_libs ++ toList lib;
-        new-attrs =
-          if new-import_libs != [] then
-            { import_libs = new-import_libs;}
-          else {};
-      in attrs // new-attrs;
-
-    # After merging all imports with current attribute set, do this.
-    post-process-merged-attrs = {import_libs ? [],...}@attrs:
-      let
-        f = l: "source ${l}\n";
-        new-attrs =
-          if import_libs != [] then
-            { importLibsHook = concatMapStrings f import_libs ; }
-          else
-            {};
-      in attrs // new-attrs;
 
   }

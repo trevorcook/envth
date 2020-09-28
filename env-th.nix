@@ -26,12 +26,13 @@ let
       imports = callPackage ./imports.nix { inherit env-th;};
       builder = callPackage ./build.nix {};
       resources = callPackage ./resources.nix {};
-      shellLib = callPackage ./shellLib.nix {};
+      shellLib = callPackage ./shellLib.nix { inherit env0; };
       make-environment = callPackage ./make-environment.nix { inherit env-th; };
 
       # Basic utilities used in some modules.
       callEnv = env-th: x:
-        if builtins.isPath x then callPackage x { inherit env-th; } else x;
+        if builtins.typeOf x == "path" then callPackage x { inherit env-th; }
+        else x;
       diffAttrs = a: b: removeAttrs a (attrNames b);
 
       };
