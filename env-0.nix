@@ -32,7 +32,9 @@ rec {
             ENVTH_OUT ENVTH_PATHS_IN_STORE
       '';
     env-entry-path = ''
-      echo -n "$(env-build)/bin/enter-$name"
+      # Echo the enter-$name location, building if necessary.
+      [[ -e $ENVTH_OUT ]] || env-build &> /dev/null
+      echo -n "$ENVTH_OUT/bin/enter-$name"
       '';
     env-reload = ''
       local pth="$(env-home-dir)"
@@ -48,10 +50,18 @@ rec {
       fi
       '';
 
-    ## Migrating to other hosts
-    # Use in conjunction with NIX_SSHOPTS for versitile copies.
+    env-reload-here = ''
+      # Re-enter the environment in current directory using the
+      # file pointed to by `definition`.
+      ENVTH_BUILDDIR="."
+      unset ENVTH_ENTRY
+      env-reload "$@"
+    '';
     env-deploy = ''
-      nix-copy-closure --to $1 $(env-build)
+      ## Migrating to other hosts
+      # Use in conjunction with NIX_SSHOPTS for versitile copies.
+      env-build
+      nix-copy-closure --to $1 $ENVTH_OUT
       '';
     env-ssh = ''
       env-deploy "$1" && env-ssh-enter "$(env-entry-path)" "$@"
