@@ -51,11 +51,14 @@ rec {
       $out/doc/html/. > $out/doc/html/index.html
     '';
 
-  mkEnvLib = attrs@{name, lib ? {}, ...}:
+  mkEnvLib = attrs@{name, lib ? {}, ENVTH_RESOURCES ? "", ...}:
     let
       attrs' = filterAttrs (n: v: all (x: n != x)
-                    ["lib" "passthru" "ENVTH_DRV"])
+                    ["lib" "passthru" "ENVTH_DRV" "shellHook" "buildInputs"
+                    ])
                     attrs.passthru.attrs-pre;
+      assoc = name: value: ''[${name}]="${toString value}"'';
+      assocArray = s: "( ${concatStringsSep " " (mapAttrsToList assoc s)} )";
       out = mkShellLib name (extras // lib);
       extras = {
         "${name}-lib" = ''
@@ -63,12 +66,34 @@ rec {
           echo "${concatStringsSep "\${sep}" (attrNames (extras // lib ))}"
           '';
         "${name}-vars" = ''
-          cat << EOF
-          VAR = current_value
-          ------------------------------------
-          ${show-vars (attrs') }
-          EOF
+          declare -A vars=${assocArray attrs'}
+          if [[ $# == 0 ]] || { [[ $# == 1 ]] && [[ "$1" == "--current" ]]; }; then
+            for key in "''${!vars[@]}"; do
+                echo "$key = $(eval echo \$$(echo $key))"
+            done
+          elif [[ $# == 1 ]] && [[ $1 == --original ]]; then
+            for key in "''${!vars[@]}"; do
+              echo "$key = ''${vars[$key]}"
+            done
+          elif [[ $# == 1 ]] && [[ $1 == --changed ]]; then
+            for key in "''${!vars[@]}"; do
+              curval="$(eval echo \$$(echo $key))"
+              origval="''${vars[$key]}"
+              if [[ $curval != $origval ]]; then
+                echo "$key = $curval ($origval)"
+              fi
+            done
+          fi
           '';
+        "${name}-localize" = ''
+           echo "%% Making Local Resources %%%%%%%%%%%%%%%%%%%%%%%"
+           local arr
+           arr=( ${ENVTH_RESOURCES} )
+           for i in "''${arr[@]}"; do
+             env-cp-resource $i
+           done
+          '';
+
         };
     in out;
 
