@@ -29,6 +29,7 @@
 
     cd $ENVPATH
     PATH=$PATH_IN
+    unset ENVTH_ENTRY
     exec nix-shell
     '';
 }
