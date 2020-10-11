@@ -52,10 +52,19 @@ rec
           keeplist   = { merge-import-value = ignore; default = [];};
           keepstring = { merge-import-value = ignore; default = "";};
           keepattr   = { merge-import-value = ignore; default = {};};
+          mergeattr  = name: { merge-import-value = merge-with-attr name;
+                         default = {};};
           ignore = _: attrs: attrs;
+          get-orig = name: attrs:
+            attrByPath [name] (special-attr name).default attrs;
+          merge-with-attr = name: value: attrs:
+            let
+              orig-value = get-orig name attrs;
+              new-value = orig-value // value;
+            in attrs // setAttrByPath [name] new-value;
           cat-with-default = name: value: attrs:
             let
-              orig-value = attrByPath [name] (special-attr name).default attrs;
+              orig-value = get-orig name attrs;
               new-value = uniquer (orig-value ++ value);
             in attrs // setAttrByPath [name] new-value;
         in {
@@ -67,7 +76,7 @@ rec
           import_libs = catlist "import_libs";
           shellHook = keepstring;
           imports = catlist "imports";
-          passthru = keepattr;
+          passthru = mergeattr "passthru";
           envs = keepattr;
         };
       defaults = mapAttrs (_: v: v.default) special-attr.definition;

@@ -85,15 +85,20 @@ rec {
             done
           fi
           '';
-        "${name}-localize" = ''
-           echo "%% Making Local Resources %%%%%%%%%%%%%%%%%%%%%%%"
-           local arr
-           arr=( ${ENVTH_RESOURCES} )
-           for i in "''${arr[@]}"; do
-             env-cp-resource $i
-           done
-          '';
-
+        "${name}-localize" = ''''${name}-localize-to "$(env-home-dir)" "$@"'';
+        "${name}-localize-to" = ''
+            ## For recreating original source environment relative to some directory.
+            local use="Use: env-localize-to <dir>"
+            [[ $# != 1 ]] && { echo $use ; return; }
+            local dir="$1"
+            mkdir -p $dir
+            echo "%% Making Local Resources in $dir %%%%%%%%%%%%%%%%%%%%%%%"
+            local arr
+            eval "arr=( $ENVTH_RESOURCES )"
+            for i in "''${arr[@]}"; do
+              env-cp-resource-to "$dir" $i
+            done
+            '';
         };
     in out;
 
@@ -115,9 +120,6 @@ rec {
       import_libs = import_libs_out;
       importLibsHook = concatMapStrings sourceLib import_libs_out;
       libs_doc = mkImportLibs name import_libs_out;
-      /* libs_doc = symlinkJoin { inherit name;
-        paths = [ import_libs_out ];
-        }; */
     };
 
 }
