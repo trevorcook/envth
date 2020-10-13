@@ -1,5 +1,6 @@
 {runCommand, callPackage, env-th,lib,stdenv,coreutils,writeText,env0}: rec {
-  # add-reloader adds a derivation that can be used to call an
+  # add-reloader adds a derivation that can be (supposed to be able to be) 
+  # used to call an
   # environment with callPackage. This is used by env-0.lib.env-reload
   add-reloader = self: super: {
     ENVTH_CALLER = (lib.makeOverridable caller {});
@@ -20,6 +21,7 @@
   caller = { definition?"" }: stdenv.mkDerivation {
     name = "env-th-caller";
     shellHook = "";
+    /* phases = ["installPhase"]; */
     builder = writeText "touch-out" ''${coreutils}/bin/echo $out > $out'';
     passthru = rec {
       inherit env0;
