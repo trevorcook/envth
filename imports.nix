@@ -1,4 +1,4 @@
-{callPackage, lib, env-th}: with builtins; with lib;
+{callPackage, lib, env-th, env0}: with builtins; with lib;
 with env-th.lib;
 let
   # unique list, keeping last instances in list.
@@ -7,7 +7,7 @@ in
 rec
   {
     # Add imports overlay
-    add-imports = self: {imports ? [],...}@attrs:
+    add-imports = self: {imports ? [env0],...}@attrs:
       let merged-attrs = foldr merge-import-env attrs imports;
       in merged-attrs;
 

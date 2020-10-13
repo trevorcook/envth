@@ -1,4 +1,4 @@
-{lib, env0, writeTextFile, symlinkJoin, pandoc, runCommand, tree }:
+{lib,  writeTextFile, symlinkJoin, pandoc, runCommand, tree }:
 with builtins;
 with lib;
 let # unique list, keeping last instances in list.
@@ -60,7 +60,7 @@ rec {
       assoc = name: value: ''[${name}]="${toString value}"'';
       assocArray = s: "( ${concatStringsSep " " (mapAttrsToList assoc s)} )";
       out = mkShellLib name (extras // lib);
-      extras = {
+      extras = if name == "env-0" then {} else {
         "${name}-lib" = ''
           local sep=" "
           echo "${concatStringsSep "\${sep}" (attrNames (extras // lib ))}"
@@ -110,8 +110,10 @@ rec {
   show-vars-default = make-vars-string (n: v: "${n} = ${builtins.toString v}");
   make-env-lib = self: super@{import_libs ? [], name, ...}:
     let
-      lib0 = mkEnvLib env0;
-      import_libs_out = uniquer ( [lib0] ++ import_libs ++ [lib] );
+      /* lib0 = mkEnvLib env0; */
+      /* lib0 = env0.lib; */
+      /* import_libs_out = uniquer ( [lib0] ++ import_libs ++ [lib] ); */
+      import_libs_out = uniquer ( import_libs ++ [lib] );
       lib = mkEnvLib super;
       lib_doc = mkShellLib-doc name lib;
       sourceLib = l: "source ${l}/lib/*\n";

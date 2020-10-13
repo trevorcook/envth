@@ -1,18 +1,34 @@
-{  }:
-rec {
+{ env-th, lib, callPackage, definition ? ./env-0.nix }: with lib;
+with env-th.lib.make-environment;
+let defin = definition;
+this = mkEnvironmentWith env-0-extensions rec {
   name = "env-0";
+  definition = ./env-0.nix;
   shellHook = ''
+    [[ $ENVTH_ENTRY == bin ]] && ENVTH_BUILDDIR=.
     env-set-PS1
+    env-PATH-nub
     ENVTH_OUT=''${ENVTH_OUT:=$out}
     '';
-  passthru.attrs-pre = { inherit name definition;
-    ENVTH_BUILDDIR = "";
-    ENVTH_RESOURCES = "";
-    ENVTH_ENTRY = "";
-    ENVTH_DRV = "";
-    ENVTH_OUT = "";
-    ENVTH_PATHS_IN_STORE = ""; };
-  definition = ./env-0.nix;
+  /* ENVTH_ENV0 = this; */
+  passthru = rec {
+    attrs-pre = {
+      inherit name definition;
+      ENVTH_BUILDDIR = "";
+      ENVTH_RESOURCES = "";
+      ENVTH_ENTRY = "";
+      ENVTH_DRV = "";
+      ENVTH_OUT = "";
+      ENVTH_CALLER = "";};
+
+    /* callenv = {definition}: callEnvPackage this {inherit definition;};
+    callEnvPackage = pk: over:
+      let
+        over' = { inherit env-th; } // over;
+        pk' = if builtins.typeOf pk == "path"
+              then import pk else pk;
+      in if isFunction pk' then callPackage pk' over' else pk'; */
+    };
   lib = {
 
     # BUILDING The environment
@@ -29,7 +45,7 @@ rec {
             '';
     env-cleanup = ''
       unset ENVTH_BUILDDIR ENVTH_RESOURCES ENVTH_ENTRY ENVTH_DRV \
-            ENVTH_OUT ENVTH_PATHS_IN_STORE
+            ENVTH_OUT
       '';
     env-entry-path = ''
       # Echo the enter-$name location, building if necessary.
@@ -195,4 +211,5 @@ rec {
       '';
 
   };
-}
+};
+in this
