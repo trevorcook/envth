@@ -7,7 +7,6 @@ with env-th.lib.init-env;
 with env-th.lib.builder;
 with env-th.lib.imports;
 with env-th.lib.add-envs;
-with env-th.lib.reloader;
 rec
 {
   # Each extension represents a step of processing. Each extension has a type,
@@ -17,7 +16,6 @@ rec
   # attributes don't define themselves. Super is the current state of the input
   # attributes. `attrs` are the attributes added/modified in the extension.
   env-extensions = [ (save-attrs-as "attrs-pre")
-                     add-reloader
                      add-envs
                      set-default-build-dir
                      gather-resources
@@ -29,7 +27,6 @@ rec
                     ];
 
   env-0-extensions = [ (save-attrs-as "attrs-pre")
-                       add-reloader
                        make-builder
                        make-env-lib
                        (save-attrs-as "attrs-post")

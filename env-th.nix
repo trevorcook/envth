@@ -27,7 +27,6 @@ let
       builder = callPackage ./build.nix {};
       resources = callPackage ./resources.nix {};
       shellLib = callPackage ./shellLib.nix { };
-      reloader = callPackage ./reloader.nix { inherit env0; };
       make-environment = callPackage ./make-environment.nix { inherit env-th; };
 
       # Basic utilities used in some modules.
