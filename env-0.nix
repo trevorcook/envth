@@ -1,18 +1,34 @@
-{  }:
-rec {
+{ env-th, lib, callPackage, definition ? ./env-0.nix }: with lib;
+with env-th.lib.make-environment;
+let defin = definition;
+this = mkEnvironmentWith env-0-extensions rec {
   name = "env-0";
+  definition = ./env-0.nix;
   shellHook = ''
+    [[ $ENVTH_ENTRY == bin ]] && ENVTH_BUILDDIR=.
     env-set-PS1
+    env-PATH-nub
     ENVTH_OUT=''${ENVTH_OUT:=$out}
     '';
-  passthru.attrs-pre = { inherit name definition;
-    ENVTH_BUILDDIR = "";
-    ENVTH_RESOURCES = "";
-    ENVTH_ENTRY = "";
-    ENVTH_DRV = "";
-    ENVTH_OUT = "";
-    ENVTH_PATHS_IN_STORE = ""; };
-  definition = ./env-0.nix;
+  /* ENVTH_ENV0 = this; */
+  passthru = rec {
+    attrs-pre = {
+      inherit name definition;
+      ENVTH_BUILDDIR = "";
+      ENVTH_RESOURCES = "";
+      ENVTH_ENTRY = "";
+      ENVTH_DRV = "";
+      ENVTH_OUT = "";
+      ENVTH_CALLER = "";};
+
+    /* callenv = {definition}: callEnvPackage this {inherit definition;};
+    callEnvPackage = pk: over:
+      let
+        over' = { inherit env-th; } // over;
+        pk' = if builtins.typeOf pk == "path"
+              then import pk else pk;
+      in if isFunction pk' then callPackage pk' over' else pk'; */
+    };
   lib = {
 
     # BUILDING The environment
@@ -29,7 +45,7 @@ rec {
             '';
     env-cleanup = ''
       unset ENVTH_BUILDDIR ENVTH_RESOURCES ENVTH_ENTRY ENVTH_DRV \
-            ENVTH_OUT ENVTH_PATHS_IN_STORE
+            ENVTH_OUT
       '';
     env-entry-path = ''
       # Echo the enter-$name location, building if necessary.
@@ -87,15 +103,9 @@ rec {
       sudo su --shell $(env-entry-path) $@
       '';
 
-    env-localize = ''
-      ## For recreating original source environmet.
-      echo "%% Making Local Resources %%%%%%%%%%%%%%%%%%%%%%%"
-      local arr
-      eval "arr=( $ENVTH_RESOURCES )"
-      for i in "''${arr[@]}"; do
-        env-cp-resource $i
-      done
-      '';
+    env-localize = ''$name-localize "$@"'';
+    env-localize-to = ''$name-localize-to "$@"'';
+
     env-home-dir = ''
       if [[ -n $NIX_STORE && -z ''${ENVTH_BUILDDIR##$NIX_STORE*} ]]; then
         ENVTH_BUILDDIR=$PWD
@@ -104,20 +114,22 @@ rec {
       fi
       echo $ENVTH_BUILDDIR;
       '';
-    env-cp-resource = ''
-      local home
-      home=$(env-home-dir)
-      if [[ -d $1 ]] ; then
-        for i in $(find $1 -type f -printf "%P\n"); do
-          env-cp-file $1/$i $home/$2/$i
+    env-cp-resource = ''env-cp-resource-to "$(env-home-dir)" "$@"'';
+    env-cp-resource-to = ''
+      local use="Use: env-cp-resource-to <dir> /nix/store/location /relative/loc"
+      [[ $# != 3 ]] && { echo $use ; return; }
+      local dir="$1"
+       if [[ -d $2 ]] ; then
+        for i in $(find $2 -type f -printf "%P\n"); do
+          env-cp-file $2/$i $dir/$3/$i
         done
-      elif [[ -e $1 ]] ; then
-        env-cp-file $1 $home/$2
+      elif [[ -e $2 ]] ; then
+        env-cp-file "$2" "$dir/$3"
       fi
       '';
     env-cp-file = ''
       mkdir -p $(dirname $2)
-      if [[ -e $2 && $(env-fst $(md5sum $1)) == $(env-fst $(md5sum $2)) ]]; then
+      if [[ -e $2 ]] && [[ $(arg-n 1 $(md5sum $1)) == $(arg-n 1 $(md5sum $2)) ]]; then
         echo "No Create : $2"
       else
         echo "Creating  : $2"
@@ -165,9 +177,6 @@ rec {
       PS1="\n${pcolor "\${c1}"}[$name]${pcolor "\${c2}"}\u@\h:${pcolor "\${c3}"}\W${pcolor "0"}\$ "
     '';
 
-    env-fst = ''
-      echo $1
-      '';
     arg-n = ''
       if [[ $# < 2 ]]; then
         echo 'arg-n: needs 2 or more arguments' > /dev/stderr
@@ -197,9 +206,10 @@ rec {
 
       EOF
       done
-      echo "# Links to all contained libs can be found at:
+      echo "# Source for all libs can be found at:
       file://$libs_doc/doc/html/index.html"
       '';
 
   };
-}
+};
+in this

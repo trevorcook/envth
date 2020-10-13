@@ -1,1 +1,0 @@
-(import ./repl.nix).shell

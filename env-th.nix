@@ -19,14 +19,14 @@ let
     # This is all the utilities going into making it work.
     lib = rec {
       # Env-th modules.
-      env0 = callPackage ./env-0.nix {};
+      env0 = callPackage ./env-0.nix { inherit env-th; };
       init-attrs = callPackage ./init-attrs.nix {};
       init-env = callPackage ./init-env.nix { inherit env0 env-th; };
       add-envs = callPackage ./add-envs.nix { inherit env-th; };
-      imports = callPackage ./imports.nix { inherit env-th;};
+      imports = callPackage ./imports.nix { inherit env-th env0;};
       builder = callPackage ./build.nix {};
       resources = callPackage ./resources.nix {};
-      shellLib = callPackage ./shellLib.nix { inherit env0; };
+      shellLib = callPackage ./shellLib.nix { };
       make-environment = callPackage ./make-environment.nix { inherit env-th; };
 
       # Basic utilities used in some modules.
@@ -34,7 +34,6 @@ let
         if builtins.typeOf x == "path" then callPackage x { inherit env-th; }
         else x;
       diffAttrs = a: b: removeAttrs a (attrNames b);
-
       };
 
     # These are the exported utilities that people will use.
@@ -42,5 +41,8 @@ let
     addEnvs = lib.add-envs.addEnvs;
     mkSrc = lib.resources.mkSrc;
     mkEnvironment = lib.make-environment.mkEnvironment;
+
+    nixpkgs = self;
+
   });
   in env-th0

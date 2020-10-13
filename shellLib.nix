@@ -1,4 +1,4 @@
-{lib, env0, writeTextFile, symlinkJoin, pandoc, runCommand, tree }:
+{lib,  writeTextFile, symlinkJoin, pandoc, runCommand, tree }:
 with builtins;
 with lib;
 let # unique list, keeping last instances in list.
@@ -60,7 +60,7 @@ rec {
       assoc = name: value: ''[${name}]="${toString value}"'';
       assocArray = s: "( ${concatStringsSep " " (mapAttrsToList assoc s)} )";
       out = mkShellLib name (extras // lib);
-      extras = {
+      extras = if name == "env-0" then {} else {
         "${name}-lib" = ''
           local sep=" "
           echo "${concatStringsSep "\${sep}" (attrNames (extras // lib ))}"
@@ -85,15 +85,20 @@ rec {
             done
           fi
           '';
-        "${name}-localize" = ''
-           echo "%% Making Local Resources %%%%%%%%%%%%%%%%%%%%%%%"
-           local arr
-           arr=( ${ENVTH_RESOURCES} )
-           for i in "''${arr[@]}"; do
-             env-cp-resource $i
-           done
-          '';
-
+        "${name}-localize" = ''''${name}-localize-to "$(env-home-dir)" "$@"'';
+        "${name}-localize-to" = ''
+            ## For recreating original source environment relative to some directory.
+            local use="Use: env-localize-to <dir>"
+            [[ $# != 1 ]] && { echo $use ; return; }
+            local dir="$1"
+            mkdir -p $dir
+            echo "%% Making Local Resources in $dir %%%%%%%%%%%%%%%%%%%%%%%"
+            local arr
+            eval "arr=( $ENVTH_RESOURCES )"
+            for i in "''${arr[@]}"; do
+              env-cp-resource-to "$dir" $i
+            done
+            '';
         };
     in out;
 
@@ -105,8 +110,10 @@ rec {
   show-vars-default = make-vars-string (n: v: "${n} = ${builtins.toString v}");
   make-env-lib = self: super@{import_libs ? [], name, ...}:
     let
-      lib0 = mkEnvLib env0;
-      import_libs_out = uniquer ( [lib0] ++ import_libs ++ [lib] );
+      /* lib0 = mkEnvLib env0; */
+      /* lib0 = env0.lib; */
+      /* import_libs_out = uniquer ( [lib0] ++ import_libs ++ [lib] ); */
+      import_libs_out = uniquer ( import_libs ++ [lib] );
       lib = mkEnvLib super;
       lib_doc = mkShellLib-doc name lib;
       sourceLib = l: "source ${l}/lib/*\n";
@@ -115,9 +122,6 @@ rec {
       import_libs = import_libs_out;
       importLibsHook = concatMapStrings sourceLib import_libs_out;
       libs_doc = mkImportLibs name import_libs_out;
-      /* libs_doc = symlinkJoin { inherit name;
-        paths = [ import_libs_out ];
-        }; */
     };
 
 }
