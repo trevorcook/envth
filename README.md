@@ -35,26 +35,28 @@ hosts or using `nix-env` to install the environment.
 
 ## Minimal Example
 
-Copy and paste the following into the command line. It creates a file,
-`env-1.nix`, in the current directory and launches a nix shell. You might want
-to create and move to a new directory first.
+Copy and paste the following into the command line. It creates two files--
+`shell.nix` and `env-1.nix`--in the current directory and launches a nix shell.
+You might want to create and move to a new directory first.
 
 ```
-cat >env-1.nix <<'EOF'
+cat >shell.nix <<'EOF'
 let
   env-th-src = builtins.fetchGit {
       url = https://github.com/trevorcook/env-th.git ;
-      rev = "99bab2a4a05eaa343b30bc0d0635277105dfa776"; };
+      rev = "f588068bd19c8a890d695731784a0f7b51f8f8e2"; };
   env-th-overlay = self: super: { env-th = import env-th-src self super; };
   nixpkgs = import <nixpkgs> { overlays = [ env-th-overlay ]; };
-in
-{ env-th ? nixpkgs.env-th }: with env-th;
+in {definition ? ./env-1.nix}: nixpkgs.callPackage definition {}
+EOF
+cat >env-1.nix <<'EOF'
+{ env-th }: with env-th;
 mkEnvironment {
  name = "env-1";
  definition = ./env-1.nix;
  }
 EOF
-nix-shell env-1.nix
+nix-shell
 
 ```
 
@@ -62,16 +64,27 @@ You should be greeted with a prompt like:
 ```
 [env-1]$USER@$HOST:dir$
 ```
-Congratulations, you have entered your 1<sup>th</sup> `env-th`. Use
-`<ctrl-d>` or `exit` to return to your usual shell.
+Congratulations, you have entered your 1<sup>th</sup> `env-th`. This environment
+inherits the basic env-th functionality, which can be explored by using the
+command `env-lib`, for example. However, new users should probably skip to
+exploring the maximal example. Use `<ctrl-d>` or `exit` to return to your usual
+shell.
 
 ### Explanation
 
 In the above code, the lines between the `EOF` are a "Here document". They get
 piped verbatim into the standard `cat` utility, which then saves them as
-`env-1.nix`. In `env-1.nix`, the `let` bindings add the `env-th` attribute set
- to `<nixpkgs>`. The `in` expression is a function with the default
-`nixpkgs.env-th` provided. The `with` expression brings `mkEnvironment` into
+`shell.nix` and `env-1.nix`.
+
+In `shell.nix`, the `let` bindings add the `env-th` attribute set to `<nixpkgs>`
+so that `callPackage` knows about it. The `in` expression uses `callPackage` to
+calls the `definition` file. An idiosyncrasy of `shell.nix` is that it is
+defined as a function with a default argument. This provides compatibility
+between invoking the definition with `nix-shell` from outside the environment
+and `env-reload` from inside the environment.
+
+The definition, `env-1.nix` has a lone dependency, `env-th`, as specified by
+its input arguments. The `with` expression brings `mkEnvironment` into
 scope, and `mkEnvironment` makes a shell environment named "`env-1`" and whose
 definition is the current file, `env-1.nix`.
 
@@ -80,16 +93,19 @@ definition is the current file, `env-1.nix`.
 We can initialize a more sophisticated example, [env/sample/sample.nix](https://github.com/trevorcook/env-th/blob/master/envs/sample/sample.nix), by copying the following to the command line. Again, you should do this in a new directory.
 
 ```
-cat >sample.nix <<'EOF'
+cat >shell.nix <<'EOF'
 let
   env-th-src = builtins.fetchGit {
       url = https://github.com/trevorcook/env-th.git ;
-      rev = "99bab2a4a05eaa343b30bc0d0635277105dfa776"; };
+      rev = "f588068bd19c8a890d695731784a0f7b51f8f8e2"; };
   env-th-overlay = self: super: { env-th = import env-th-src self super; };
   nixpkgs = import <nixpkgs> { overlays = [ env-th-overlay ]; };
-in nixpkgs.env-th.envs.sample
+in {definition ? ./sample.nix}: nixpkgs.callPackage definition {}
 EOF
-nix-shell sample.nix
+cat >sample.nix <<'EOF'
+{env-th}: env-th.envs.sample
+EOF
+nix-shell
 
 ```
 The shell will be launched and greet you with a message explaining what to do
@@ -99,61 +115,56 @@ in the sequel of this README.
 
 ### Explanation
 
-Like in the minimal example, this code creates and launches a new nix file. Like
-in the minimal example, the `let` binding adds the `env-th` attribute to
-`nixpkgs`. The `in` expression, however, just references the included
-environment, `env-th.envs.sample`, rather than defining a new one. On entering
-the shell, a message is printed that says to run `env-localize`, which copies
-the definition files from the nix store to the local directory. Part of this is
-replacing the original `sample.nix` with the one from the store. The next time
-you enter the shell, it will be using the local definition.
+Like in the minimal example, this code creates two files, a `shell.nix` that
+calls the definition, `sample.nix`. The only difference in the `shell.nix` here
+is the default `definition` supplied. The definition file however, just
+references the included environment, `env-th.envs.sample`, rather than defining
+a new one.
+
+On entering the shell, a message is printed that suggests different commands to
+run. One, `env-localize`, will copy the definition files from the nix store
+to the local directory. Part of this is replacing the original `sample.nix` with
+the original definition on which it is based. The next time the shell is entered,
+it will be using the local definition.
 
 # Defining `env-th` Environments
 
 To create an `env-th` environment, we define environment files with the form
 ```
-   {env-th ? default-envth [, ...] }: env-th.mkEnvironment { ... };
+   { env-th }: env-th.mkEnvironment { ... };
 ```
-In this form, the environment definition is a function where all the input
-arguments are provided default values. The function body is the result of a
-call to `env-th.mkEnvironment {...}`, where the contents of (`{...}`) hold all
-the environment definitions. The reason for the "function with defaults"
-convention is that it both provides that the environment can be entered with
-`nix-shell env.nix` and that it can be imported inside the body of another
-environment.
+The overall form of the environment definition is a function. The arguments to
+the function declare which `nix` derivations the environment depends upon. The
+function body is the result of a call to `env-th.mkEnvironment {...}`, where
+`{...}` contains all the environment definitions. The function-form is the
+standard `nix` idiom which allows the the modification of packages based on
+modification of their supplied inputs.
 
-## Default Arguments
+## Loading Environments and Default Arguments
 
-Default arguments can be supplied using something like the following
-```
-let pkgs = import <nixpkgs> { };
-in { pkg1 ? pkgs.pkg1, pkg2 ? pkgs.pkg2 } :
-```
-The above demonstration of `env-1` shows shows how a default `env-th` can be
-supplied by providing a `<nixpkgs>` overlay.
+Invoking an environment directly from `nix-shell` is only possible if all the
+input arguments are satisfied with defaults. To avoid supplying all the
+arguments by hand, `env-th` environments can be called with `callPackage` from a
+`shell.nix`, as demonstrated in the [Minimal](minimal-example) and
+[Maximal](maximal-example) examples.
 
-Another pattern for providing default arguments is to split the definition into
-two files, a `shell.nix` and the definition file. In this case, the `shell.nix`
-is a simple file that uses `callPackages` to call the definition file. Using
-this pattern, no defaults need to be supplied in the actual definition.
-
-```
-let
-  env-th-src = builtins.fetchGit {
-      url = https://github.com/trevorcook/env-th.git ;
-      rev = "99bab2a4a05eaa343b30bc0d0635277105dfa776"; };
-  env-th-overlay = self: super: { env-th = import env-th-src self super; };
-  nixpkgs = import <nixpkgs> { overlays = [ env-th-overlay ]; };
-in callPackage ./my-environment-file.nix {}
-```
+Within an environment, changes to the definition file will be realized after
+running the command `env-reload`. This command has access to its own `shell.nix`
+file that uses a `callPackage` to call the definition. So the behavior of the
+environment may differ when invoked via `nix-shell` or `env-reload`, depending
+on the difference between the user supplied `shell.nix` and `env-th`'s own
+internal `shell.nix`. This behavior can be controlled by the environment
+variable `env-reloader`, and is discussed in [other attributes](other-attributes).
 
 ### User Overlay
 
-Instead of providing an `env-th` overlay in each nix file. One can be supplied
-in a user's nixpkgs config file. This will add the `env-th` attribute to
-`<nixpkgs>` any time it is invoked, and therefore make it available with
-`callPackages`. For linux, add the following file to  `~/.config/nixpkgs/overlays/env-th.nix`:
+To provide the `env-th` input to our environments we defined overlays
+in our example `shell.nix` files. Instead of providing that overlay in each
+file, however, one can be supplied in the user's nixpkgs config file. Doing so
+will add the `env-th` attribute to `<nixpkgs>` any time it is invoked, and
+therefore make it available with `callPackages`.
 
+For linux, add the following to `~/.config/nixpkgs/overlays/env-th.nix`:
   ```
   let
     env-th-src = builtins.fetchGit {
@@ -164,8 +175,13 @@ in a user's nixpkgs config file. This will add the `env-th` attribute to
   ```
 > Note: Use `nix-prefetch-git https://github.com/trevorcook/env-th.git` to get
   the recent `rev`
+> See [nixos wiki](https://nixos.wiki/wiki/Overlays) for alternative overlay
+  methods.
 
 ## Definition Body
+
+This section describes the attributes that can be passed to
+`env-th.mkEnvironment`.
 
 ### Required Attributes
 
@@ -178,14 +194,10 @@ in a user's nixpkgs config file. This will add the `env-th` attribute to
   }
   ```
 - `definition`: This attribute must be a nix path that refers to the
-  environment file itself. If splitting the definition into multiple files, the
-  main entry point must be the `definition` attribute, e.g.:
+  environment file itself.
   ```
-  definition = ./shell.nix;
-  definition_ = env-th.mkSrc ./my-env.nix;
+  definition = ./my-env.nix;
   ```
-  > Note> `definition_` is not a keyword attribute.
-
 
 ### Other Attributes
 
@@ -230,7 +242,14 @@ in a user's nixpkgs config file. This will add the `env-th` attribute to
    into scope whenever the current environment is in scope. No environment
    variables are created with `addEnvs`, however "`passthru`" variables `envs`
    and `envs-added` can be inspected from within the `nix repl`. See also the
-   section on [other `env-th` utilities](other-env-th-attributes).
+   section on [other `env-th` attributes](other-env-th-attributes).
+
+- `env-reloader`: `env-th` builds a "reloader" derivation that calls the
+   definition with `callPackages`. To supply an alternative reloader, assign
+   this attribute to the filepath of a nix file of the form
+   `{definition}:callPackage definition {}`. Alternatively, the string "none",
+   may be supplied, in which case `env-reload` will attempt to reload the
+   definition file directly.
 
 - Other `mkDerivation` attributes, i.e. `shellHook`, `buildInputs`, inherit    
   their behavior from `mkDerivation`. That is, `shellHook`, is run when the

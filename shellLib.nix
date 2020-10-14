@@ -60,7 +60,7 @@ rec {
       assoc = name: value: ''[${name}]="${toString value}"'';
       assocArray = s: "( ${concatStringsSep " " (mapAttrsToList assoc s)} )";
       out = mkShellLib name (extras // lib);
-      extras = if name == "env-0" then {} else {
+      extras = {
         "${name}-lib" = ''
           local sep=" "
           echo "${concatStringsSep "\${sep}" (attrNames (extras // lib ))}"

@@ -15,7 +15,11 @@ rec
     merge-import-env = env_: attrs:
       let
         env = callEnv env-th env_;
-        env-attrs = env.passthru.attrs-post;
+        env-attrs = restrict-passthru-attrs env.passthru.attrs-post;
+        restrict-passthru-attrs = env: env //
+          { passthru = filterAttrs
+              (n: v: all (k: k != n) ["envs" "envs-added" "envs-orig"] )
+              env.passthru; };
         split-env = split-import-attrs env-attrs;
         merged-specials = merge-special-attrs attrs split-env.specials;
         attrs-out = wDbg (split-env.non-specials // merged-specials) ;
@@ -60,7 +64,7 @@ rec
           merge-with-attr = name: value: attrs:
             let
               orig-value = get-orig name attrs;
-              new-value = orig-value // value;
+              new-value = recursiveUpdate orig-value value;
             in attrs // setAttrByPath [name] new-value;
           cat-with-default = name: value: attrs:
             let

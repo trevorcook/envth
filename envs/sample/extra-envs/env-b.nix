@@ -6,7 +6,7 @@ with env-th.addEnvs [pyenv]; mkEnvironment
   varB = "varB set in env-b";
   addEnvs = [pyenv];
   lib = {
-    env-b-python = ''echo "${envs.python38.env}.../"
-                     ls ${envs.python38.env}/lib/python3.8/site-packages'';
+    env-b-python = ''echo "${envs.python38.python}.../"
+                     ls ${envs.python38.python}/lib/python3.8/site-packages'';
   };
 }

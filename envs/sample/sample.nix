@@ -1,12 +1,4 @@
-let
-  nixpkgs = import <nixpkgs> { overlays = [ env-th-overlay ]; };
-  env-th-overlay = import ../../env-th.nix;
-  env-th-src = builtins.fetchGit {
-      url = https://github.com/trevorcook/env-th.git ;
-      rev = "99bab2a4a05eaa343b30bc0d0635277105dfa776"; };
-in
-{env-th ? nixpkgs.env-th , figlet ? nixpkgs.figlet}:
-with env-th.addEnvs [ extra-envs/env-a.nix ];
+{env-th , figlet }: with env-th.addEnvs [ extra-envs/env-a.nix ];
 mkEnvironment rec {
 
   # REQUIRED ARGS ####################
@@ -53,21 +45,31 @@ mkEnvironment rec {
   shellHook = ''
     b_file="no/such/file"
     echo "~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~" | lolcat
-    sample-env-th-banner
+    sample-banner env-th
     echo "~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~" | lolcat
     cat <<'EOF'
     Hello from ${name}!
+
+    Use functions defined by this environment, e.g.
+
+    > sample-banner MAMA
+
+    Inspect the list of all imported functions with
+
+    > env-lib
+
+    (Note the URI printed last. It is a html page where all the
+    sources of all the imported functions can be inspected.)
 
     Copy the files defining this environment into the current
     directory with:
 
     > env-localize
 
-    Then, inspect "sample.nix", make changes as desired, and
-    reload with
+    Inspect "sample.nix", make changes as desired, and reload
+    with
 
     > env-reload
-
     EOF
     '';
 
@@ -89,10 +91,10 @@ mkEnvironment rec {
       However, b_file is currently $b_file
       EOF
       '';
-    sample-env-th-banner = ''
+    sample-banner = ''
     #This function uses "figlet" put on the path in this environment
     # and "lolcat" inherited from `env-c.nix`;
-    echo "env-th" | figlet | lolcat
+    echo "$*" | figlet | lolcat
     '';
   };
   # mkEnvironment imports an initial environment, env-0, which
@@ -128,13 +130,14 @@ mkEnvironment rec {
   # `env-d`, is not either. Neither `envs.env-c` nor `envs.env-d` can be
   # referenced.
   # In a similar vein to the above explanation, the following attribute
-  # puts both `env-a` and `env-b` in scope whenever this file is put in
+  # would put both `env-a` and `env-b` in scope whenever envs.sample is put in
   # scope.
-  addEnvs = [ envs.env-a ];
+  # addEnvs = [ envs.env-a ];
   # All environments inherit an `env` attribute (passthru.env, actually),
   # listing all in scope envs. All in-scope environments can be inspected
   # with nix read-eval-print-loop utility. E.g.
-  # > nix repl ./sample.nix
+  # > env-repl  or
+  # > nix repl ./shell.nix
   # nix-repl> passthru.envs
   # { env-a = <<derivation.... }
   # nix-repl> passthru.envs.env-b.<tab>
