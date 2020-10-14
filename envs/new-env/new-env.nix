@@ -10,12 +10,19 @@
     ENVPATH=''${ENVPATH:=$PWD}
     read -p "Enter environment name. [ $(basename $ENVPATH) ] " ENVNAME
     ENVNAME=''${ENVNAME:=$(basename $ENVPATH)}
+    read -p "Use minimal definition? [ N ] " ENVMIN
+    ENVMIN=''${ENVMIN:=N}
 
     mkdir -p $ENVPATH
-    substitute ${./env-template.txt} $ENVPATH/''${ENVNAME}.nix \
-      --subst-var ENVNAME
+    if [[ $ENVMIN == N ]] || [[ $ENVMIN == n ]]; then
+      substitute ${./env-extended-template.txt} $ENVPATH/''${ENVNAME}.nix \
+        --subst-var ENVNAME
+    else
+      substitute ${./env-template.txt} $ENVPATH/''${ENVNAME}.nix \
+        --subst-var ENVNAME
+    fi
     substitute ${./default-template.txt} $ENVPATH/default.nix \
-      --subst-var ENVNAME
+        --subst-var ENVNAME
     substitute ${./shell-template.txt} $ENVPATH/shell.nix \
         --subst-var ENVNAME
 

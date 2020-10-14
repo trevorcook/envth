@@ -20,14 +20,6 @@ this = mkEnvironmentWith env-0-extensions rec {
       ENVTH_DRV = "";
       ENVTH_OUT = "";
       ENVTH_CALLER = "";};
-
-    /* callenv = {definition}: callEnvPackage this {inherit definition;};
-    callEnvPackage = pk: over:
-      let
-        over' = { inherit env-th; } // over;
-        pk' = if builtins.typeOf pk == "path"
-              then import pk else pk;
-      in if isFunction pk' then callPackage pk' over' else pk'; */
     };
   lib = {
 
@@ -45,7 +37,7 @@ this = mkEnvironmentWith env-0-extensions rec {
             '';
     env-cleanup = ''
       unset ENVTH_BUILDDIR ENVTH_RESOURCES ENVTH_ENTRY ENVTH_DRV \
-            ENVTH_OUT
+            ENVTH_OUT ENVTH_CALLER
       '';
     env-entry-path = ''
       # Echo the enter-$name location, building if necessary.
@@ -56,13 +48,33 @@ this = mkEnvironmentWith env-0-extensions rec {
       local pth="$(env-home-dir)"
       local enter="$(env-entry-path)"
       local method=$ENVTH_ENTRY
+      local caller=$ENVTH_CALLER
       env-cleanup
       # Format inputs run in next env and not exit immediately.
       cmds="$@" ; [[ -z $cmds ]] && cmds=return ; cmds="$cmds ; return"
       if [[ $method == bin ]]; then
         exec $enter "$cmds"
+      elif [[ $caller == none ]]; then
+        exec nix-shell --command "$cmds" $pth/$definition
       else
-        exec nix-shell $pth/$definition --command "$cmds"
+        exec nix-shell --argstr definition $pth/$definition \
+                       --command "$cmds" $caller
+      fi
+      '';
+    env-repl = ''
+      local pth="$(env-home-dir)"
+      local method=$ENVTH_ENTRY
+      local caller=$ENVTH_CALLER
+      local pthdef
+      if [[ $method == bin ]]; then
+        pthdef="$definition_NIXSTORE"
+      else
+        pthdef="$pth/$definition"
+      fi
+      if [[ $caller == none ]]; then
+          nix repl $pthdef
+      else
+        nix repl --argstr definition $pthdef $caller
       fi
       '';
 

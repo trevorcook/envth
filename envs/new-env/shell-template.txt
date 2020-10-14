@@ -1,1 +1,2 @@
-(import <nixpkgs> {}).callPackage ./@ENVNAME@.nix {}
+{definition ? ./@ENVNAME@ }: with import <nixpkgs> {};
+  callPackage definition {}

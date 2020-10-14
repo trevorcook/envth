@@ -7,8 +7,8 @@ in
 rec
   {
     # Add imports overlay
-    add-imports = self: {imports ? [env0],...}@attrs:
-      let merged-attrs = foldr merge-import-env attrs imports;
+    add-imports = self: {imports ? [],...}@attrs:
+      let merged-attrs = foldr merge-import-env attrs ([env0] ++ imports);
       in merged-attrs;
 
     # Merge an imported env into the current attribute set.

@@ -1,53 +1,21 @@
-{runCommand, callPackage, env-th,lib,stdenv,coreutils,writeText,env0}: rec {
-  # add-reloader adds a derivation that can be (supposed to be able to be) 
+{env-th,writeText,env0,path,lib}: with lib; rec {
+  # add-reloader adds a derivation that can be (supposed to be able to be)
   # used to call an
   # environment with callPackage. This is used by env-0.lib.env-reload
   add-reloader = self: super: {
-    ENVTH_CALLER = (lib.makeOverridable caller {});
-    /* ENVTH_CALLER = (caller {}).drvPath; */
-    /* ENVTH_CALLER = env0.drvPath; */
+    ENVTH_CALLER =
+        attrByPath ["env-reloader"] reloader-file super;
     };
-  /* caller = { definition?"" }: runCommand "env-th-caller" {
-    passthru = rec {
-      call-env = callEnvPackage definition {};
-      callEnvPackage = pk: over:
+
+  reloader-file = writeText "reloader.nix" ''
+    {definition}: let
+      get-pkgs = config:
         let
-          over' = { inherit env-th; } // over;
-          pk' = if builtins.typeOf pk == "path"
-                then import pk else pk;
-        in if lib.isFunction pk' then callPackage pk' over' else pk';
-      };
-    } ''touch $out''; */
-  caller = { definition?"" }: stdenv.mkDerivation {
-    name = "env-th-caller";
-    shellHook = "";
-    /* phases = ["installPhase"]; */
-    builder = writeText "touch-out" ''${coreutils}/bin/echo $out > $out'';
-    passthru = rec {
-      inherit env0;
-      /* callover = caller.override */
-      callenv = callEnvPackage definition {};
-      #callenv = callEnvPackage definition {};
-      callEnvPackage = pk: over:
-        let
-          over' = { inherit env-th; } // over;
-          pk' = if builtins.typeOf pk == "path"
-                then import pk else pk;
-        in if lib.isFunction pk' then callPackage pk' over' else pk';
-      };
-    };
-  /* caller = { definition?"" }: env-th.mkEnvironment {
-    name = "env-th-caller";
-    inherit definition;
-    passthru = rec {
-      callenv = { definition?"" }: callEnvPackage definition {};
-      #callenv = callEnvPackage definition {};
-      callEnvPackage = pk: over:
-        let
-          over' = { inherit env-th; } // over;
-          pk' = if builtins.typeOf pk == "path"
-                then import pk else pk;
-        in if lib.isFunction pk' then callPackage pk' over' else pk';
-      };
-    }; */
+          pkgs-sys = builtins.tryEval (import <nixpkgs> config);
+          pkgs-on-build = import ${path} config;
+        in if pkgs-sys.success then pkgs-sys.value else pkgs-on-build;
+      overlays = [ (self: super: { env-th = import ${env-th.src} self super; })];
+      pkgs = let pkgs = get-pkgs {}; in
+        if pkgs ? env-th then pkgs else get-pkgs { inherit overlays; };
+    in pkgs.callPackage definition {}'';
 }

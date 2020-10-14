@@ -1,0 +1,12 @@
+{ env-th } : with env-th.addEnvs [];
+mkEnvironment rec
+{ name = "@ENVNAME@";
+  definition = ./@ENVNAME@.nix;
+  # env-caller = mkSrc ./shell.nix;
+  shellHook = '''';
+  buildInputs = [] ;
+  imports = with envs; [];
+  addEnvs = [];
+  lib = {};
+  passthru = {};
+}

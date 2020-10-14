@@ -1,1 +1,3 @@
-(import <nixpkgs> {}).callPackage ./new-enter.nix {}
+{definition ? ./new-enter.nix }:
+with import <nixpkgs> {};
+  callPackage definition {}

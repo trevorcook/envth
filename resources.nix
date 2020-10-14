@@ -1,7 +1,7 @@
 {lib}:
 with lib;
 rec {
-  mkSrc = pth: rec {
+  mkSrc = pth: if isEnvSrc pth then pth else rec {
       type = "env-resource";
       __toString = x: x.store;
       store = pth;
@@ -45,6 +45,7 @@ rec {
               (attrValues x.resources));
         };
         definition = mkLocalTo ENVTH_BUILDDIR def-resource.local;
+        definition_NIXSTORE = def-resource.store;
       };
 
 }

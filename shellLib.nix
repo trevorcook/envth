@@ -22,7 +22,7 @@ rec {
     '';
   mkShellLib = name: lib:
     let lib-file = writeTextFile
-          { inherit name;
+          { name = "${name}-shellLib";
             text = mkShellFunctions lib;
           };
     in runCommand name {} ''
@@ -37,7 +37,7 @@ rec {
       $out/doc/html/. > $out/doc/html/index.html
     '';
 
-  mkImportLibs = name: libs: runCommand name { inherit libs; } ''
+  mkImportLibs = name: libs: runCommand "${name}-importLibs" { inherit libs; } ''
     #NOTE: This command will fail (probably) for env names with spaces.
     mkdir -p $out/doc/html
     for l in $libs; do

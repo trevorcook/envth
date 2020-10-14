@@ -1,21 +1,20 @@
-{ env-th,lib, callPackage, definition ? ./new-enter.nix } : with env-th;
+{ env-th,lib, callPackage } : with env-th;
 let
   nixlib = lib;
   this = mkEnvironment rec
 { name = "new-enter";
   entvar = 1;
   definition =  ./new-enter.nix;
-  
-  definition_ =  mkSrc ./new-enter.nix;
   shellHook = ''
-    show-things ssss
+    show-things Boogabooga
     '';
   buildInputs = [] ;
   lib = {
     show-things = ''
+      echo "~~~~"
       echo $1
       echo ENVTH_CALLER=$ENVTH_CALLER
-      echo out=$out
+      # echo out=$out
       #echo this=
       '';
     /* this-reload = ''
@@ -26,15 +25,16 @@ let
       local pth="$(env-home-dir)"
       local enter="$(env-entry-path)"
       local method=$ENVTH_ENTRY
+      local caller=$ENVTH_CALLER
       env-cleanup
       # Format inputs run in next env and not exit immediately.
       cmds="$@" ; [[ -z $cmds ]] && cmds=return ; cmds="$cmds ; return"
       if [[ $method == bin ]]; then
         exec $enter "$cmds"
+      elif [[ $caller == none ]]; then
+        nix-shell $pth/$definition --command "$cmds"
       else
-        #exec nix-shell $pth/$definition --command "$cmds"
-        nix-shell -A passthru.callenv --argstr definition $definition \
-          $ENVTH_CALLER
+        nix-shell --argstr definition $pth/$definition $caller --command "$cmds"
       fi
       '';
 

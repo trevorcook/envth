@@ -27,9 +27,8 @@ let
       builder = callPackage ./build.nix {};
       resources = callPackage ./resources.nix {};
       shellLib = callPackage ./shellLib.nix { };
-      reloader = callPackage ./reloader.nix { inherit env0; };
       make-environment = callPackage ./make-environment.nix { inherit env-th; };
-
+      reloader = callPackage ./reloader.nix { inherit env0; };
       # Basic utilities used in some modules.
       callEnv = env-th: x:
         if builtins.typeOf x == "path" then callPackage x { inherit env-th; }
@@ -42,8 +41,7 @@ let
     addEnvs = lib.add-envs.addEnvs;
     mkSrc = lib.resources.mkSrc;
     mkEnvironment = lib.make-environment.mkEnvironment;
-
-    nixpkgs = self;
+    src = ./.;
 
   });
   in env-th0
