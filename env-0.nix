@@ -45,6 +45,7 @@ this = mkEnvironmentWith env-0-extensions rec {
       echo -n "$ENVTH_OUT/bin/enter-$name"
       '';
     env-reload = ''
+      env-build
       local pth="$(env-home-dir)"
       local enter="$(env-entry-path)"
       local method=$ENVTH_ENTRY
