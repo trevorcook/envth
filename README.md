@@ -44,7 +44,7 @@ cat >shell.nix <<'EOF'
 let
   env-th-src = builtins.fetchGit {
       url = https://github.com/trevorcook/env-th.git ;
-      rev = "e96f384961b4644c5e2a9ae227a6cbb5e97f2c63"; };
+      rev = "072e2592e78a78dbc352b7dfbf2f3c3f6b458ad2"; };
   env-th-overlay = self: super: { env-th = import env-th-src self super; };
   nixpkgs = import <nixpkgs> { overlays = [ env-th-overlay ]; };
 in {definition ? ./env-1.nix}: nixpkgs.callPackage definition {}
@@ -97,7 +97,7 @@ cat >shell.nix <<'EOF'
 let
   env-th-src = builtins.fetchGit {
       url = https://github.com/trevorcook/env-th.git ;
-      rev = "e96f384961b4644c5e2a9ae227a6cbb5e97f2c63"; };
+      rev = "072e2592e78a78dbc352b7dfbf2f3c3f6b458ad2"; };
   env-th-overlay = self: super: { env-th = import env-th-src self super; };
   nixpkgs = import <nixpkgs> { overlays = [ env-th-overlay ]; };
 in {definition ? ./sample.nix}: nixpkgs.callPackage definition {}
@@ -169,7 +169,7 @@ For linux, add the following to `~/.config/nixpkgs/overlays/env-th.nix`:
   let
     env-th-src = builtins.fetchGit {
         url = https://github.com/trevorcook/env-th.git ;
-        rev = "e96f384961b4644c5e2a9ae227a6cbb5e97f2c63"; };
+        rev = "072e2592e78a78dbc352b7dfbf2f3c3f6b458ad2"; };
   in
   self: super: { env-th = import env-th-src self super; }
   ```
