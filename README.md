@@ -220,6 +220,9 @@ This section describes the attributes that can be passed to
     echo "param 1 is $1"
   }
   ```
+- `paths`: This attribute will add executables and libraries to the system
+  paths as in `buildInputs` for `stdenv.mkDerivation` or `paths` for
+  `nixpkgs.lib.buildEnv`
 
 - `imports`: If defined, `imports` should be a list of other `mkEnvironment`
   style derivations. E.g.:
@@ -235,7 +238,7 @@ This section describes the attributes that can be passed to
   The libraries and variables of all imported environments will be added
   to the scope of the current environment. Later imports shadow earlier
   imports, and the calling environment's variables shadow all imports. There
-  are exceptions: `buildInputs` and `libs` of imported are added to the current
+  are exceptions: `paths` and `libs` of imported are added to the current
   environment.
 
 - `addEnvs`: This attribute expects a list of environments that will be brought

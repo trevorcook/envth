@@ -38,8 +38,8 @@ mkEnvironment rec {
   # Special variables ################
   # These variables are treated specially in various ways.
 
-  # buildInputs will add utilities to the environment path.
-  buildInputs = [ figlet ];
+  # paths will add utilities to the environment path.
+  paths = [ figlet ];
 
   # Commands to run upon shell entry.
   shellHook = ''
@@ -103,7 +103,7 @@ mkEnvironment rec {
   # to list contained functions.
 
   # imports: A list of environments to be merged with the current one.
-  # Attributes, `buildInputs` `lib` of imported are added to the environment.
+  # Attributes, `paths` `lib` of imported are added to the environment.
   # The `imports` are added in order they are listed, so any later
   # imports will override earlier variables and functions of the
   # same name. Additionally, `imports` creates a special attribute

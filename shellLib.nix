@@ -54,7 +54,7 @@ rec {
   mkEnvLib = attrs@{name, lib ? {}, ENVTH_RESOURCES ? "", ...}:
     let
       attrs' = filterAttrs (n: v: all (x: n != x)
-                    ["lib" "passthru" "ENVTH_DRV" "shellHook" "buildInputs"
+                    ["lib" "passthru" "ENVTH_DRV" "shellHook" "paths"
                     ])
                     attrs.passthru.attrs-pre;
       assoc = name: value: ''[${name}]="${toString value}"'';

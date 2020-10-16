@@ -72,7 +72,7 @@ rec
               new-value = uniquer (orig-value ++ value);
             in attrs // setAttrByPath [name] new-value;
         in {
-          buildInputs = catlist "buildInputs";
+          paths = catlist "paths";
           addEnvs = keeplist;
           name = keepstring;
           definition = keepstring;

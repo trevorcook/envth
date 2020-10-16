@@ -1,7 +1,7 @@
 { env-th, stdenv }: env-th.mkEnvironment
 { name = "new-env";
   definition = ./new-env.nix;
-  buildInputs = [];
+  paths = [];
 
   shellHook = ''
     PATH_IN=$PATH

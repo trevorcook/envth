@@ -1,7 +1,7 @@
 { writeScript, stdenv, makeWrapper, bash, bashInteractive, coreutils }:
 rec {
   make-builder = self: super@{ name, ENVTH_DRV ? ""
-                             , buildInputs ? []
+                             , buildInputs ? [], paths ? []
                              , ... }:
     { builder = writeScript "${name}-builder" ''
         # Save the environment to capture all variables that nix put
@@ -78,7 +78,7 @@ rec {
         nix-shell ${ENVTH_DRV} "$@"
         '';
 
-      buildInputs = [makeWrapper bash]++buildInputs;
+      buildInputs = [makeWrapper bash] ++ paths ++ buildInputs;
       };
   fix-env = writeScript "fix-env" ''
           #!${bash}/bin/bash

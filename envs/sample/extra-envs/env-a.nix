@@ -6,7 +6,6 @@ with env-th.addEnvs [pyenv ./env-b.nix];
 mkEnvironment
 { name = "env-a";
   definition = ./env-a.nix;
-  buildInputs = [ ];
   pyenv = pyenv.python;
   varA = "varA set in env-a";
   imports = [ envs.env-b ];
