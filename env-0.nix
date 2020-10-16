@@ -19,7 +19,8 @@ this = mkEnvironmentWith env-0-extensions rec {
       ENVTH_ENTRY = "";
       ENVTH_DRV = "";
       ENVTH_OUT = "";
-      ENVTH_CALLER = "";};
+      ENVTH_CALLER = "";
+      ENVTH_NOCLEANUP = ""; };
     };
   lib = {
 
@@ -45,23 +46,27 @@ this = mkEnvironmentWith env-0-extensions rec {
       echo -n "$ENVTH_OUT/bin/enter-$name"
       '';
     env-reload = ''
+      # Reload env, passing inputs as commands to be run upon entry.
+      cmds="$@" ; [[ -z $cmds ]] && cmds=return ; cmds="$cmds ; return"
+      env-reload-with-args --command "$cmds"
+      '';
+    env-reload-with-args = ''
+      # env-reload without the implicit "--comand $@ arg"
       env-build
       local pth="$(env-home-dir)"
       local enter="$(env-entry-path)"
       local method=$ENVTH_ENTRY
       local caller=$ENVTH_CALLER
-      env-cleanup
-      # Format inputs run in next env and not exit immediately.
-      cmds="$@" ; [[ -z $cmds ]] && cmds=return ; cmds="$cmds ; return"
+      [[ -n ENVTH_NOCLEANUP ]] && env-cleanup
       if [[ $method == bin ]]; then
-        exec $enter "$cmds"
+        exec $enter "$@"
       elif [[ $caller == none ]]; then
-        exec nix-shell --command "$cmds" $pth/$definition
+        exec nix-shell "$@" $pth/$definition
       else
-        exec nix-shell --argstr definition $pth/$definition \
-                       --command "$cmds" $caller
+        exec nix-shell --argstr definition $pth/$definition "$@" $caller
       fi
       '';
+
     env-repl = ''
       local pth="$(env-home-dir)"
       local method=$ENVTH_ENTRY

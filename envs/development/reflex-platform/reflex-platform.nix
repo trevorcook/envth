@@ -15,19 +15,7 @@ in mkEnvironment rec
   passthru = {
     reflex = rec {
       inherit reflex-platform;
-      project = reflex-platform.project (import project-file);
-      /* shell-env = {
-          ghcjs = buildEnv {
-            name  = "reflex-shell-env-ghcjs";
-            paths = project.shells.ghcjs.buildInputs;
-          };
-          ghc = buildEnv {
-            name  = "reflex-shell-env-ghc";
-            paths = project.shells.ghc.buildInputs;
-          };
-        }; */
-      };
-    };
+      project = reflex-platform.project (import project-file); }; };
   lib =
   {
     /* open-local-frontend = ''
@@ -39,7 +27,7 @@ in mkEnvironment rec
       # Enters the reflex shell as per the reflex way, but runs the
       # env-th shellHook to initialize the shell as per env-th.
       ${checkghc}
-      nix-shell -A reflex.project.shells.$ghc $definition \
+      ENVTH_NOCLEANUP=1 env-reload-with-args -A reflex.project.shells.$ghc \
        --command "name=reflex-$ghc; $shellHook return"
       '';
     reflex-open-doc = ''
