@@ -22,7 +22,7 @@ this = mkEnvironmentWith env-0-extensions rec {
       ENVTH_CALLER = "";
       ENVTH_NOCLEANUP = ""; };
     };
-  lib = {
+  envlib = {
 
     # BUILDING The environment
     env-build = ''

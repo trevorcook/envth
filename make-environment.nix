@@ -1,7 +1,7 @@
 {stdenv, env-th, lib}:
 with lib;
 with env-th.lib.resources;
-with env-th.lib.shellLib;
+with env-th.lib.envlib;
 with env-th.lib.init-attrs;
 with env-th.lib.init-env;
 with env-th.lib.builder;
@@ -23,23 +23,19 @@ rec
                      add-envs
                      add-imports
                      make-builder
-                     make-env-lib
+                     make-envlib
                      (save-attrs-as "attrs-post")
                      init-env
                     ];
 
   env-0-extensions = [ (save-attrs-as "attrs-pre")
                        make-builder
-                       make-env-lib
+                       make-envlib
                        (save-attrs-as "attrs-post")
                       ];
 
   process-attrs = foldl composeExtensions (_: super: super);
 
-  /* mkEnvironment = attrs:
-    let
-      final = mkEnvironmentWith process-attrs (attrs //{ inherit final; });
-    in final;      */
   mkEnvironment = mkEnvironmentWith env-extensions ;
   mkEnvironmentWith = exts-in: attrs:
     let

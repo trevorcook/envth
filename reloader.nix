@@ -1,7 +1,7 @@
 {env-th,writeText,env0,path,lib}: with lib; rec {
   # add-reloader adds a derivation that can be (supposed to be able to be)
   # used to call an
-  # environment with callPackage. This is used by env-0.lib.env-reload
+  # environment with callPackage. This is used by env-0.envlib.env-reload
   add-reloader = self: super: {
     ENVTH_CALLER =
         attrByPath ["env-reloader"] reloader-file super;

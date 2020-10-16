@@ -76,7 +76,7 @@ rec
           addEnvs = keeplist;
           name = keepstring;
           definition = keepstring;
-          lib = keepattr;
+          envlib = keepattr;
           import_libs = catlist "import_libs";
           shellHook = keepstring;
           imports = catlist "imports";

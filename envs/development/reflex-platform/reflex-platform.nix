@@ -16,7 +16,7 @@ in mkEnvironment rec
     reflex = rec {
       inherit reflex-platform;
       project = reflex-platform.project (import project-file); }; };
-  lib =
+  envlib =
   {
     /* open-local-frontend = ''
       local uri="file://$(cat FRONTEND_DIR)/index.html"

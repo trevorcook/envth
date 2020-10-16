@@ -7,6 +7,6 @@ mkEnvironment rec
   buildInputs = [] ;
   imports = with envs; [];
   addEnvs = [];
-  lib = {};
+  envlib = {};
   passthru = {};
 }

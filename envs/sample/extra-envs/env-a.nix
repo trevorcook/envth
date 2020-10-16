@@ -15,8 +15,8 @@ mkEnvironment
               envs.env-b    # Likewise, bring env-b, into scope.
               ];
   varB-refA  = envs.env-b.varB;
-  lib = {
-    env-a-f = '' echo "env-a lib" '';
+  envlib = {
+    env-a-f = '' echo "env-a envlib" '';
     # Both env-a-python and env-b-pyton should report the same site packages.
     env-a-python = ''echo "${envs.python38.python}.../"
                      ls ${envs.python38.python}/lib/python3.8/site-packages'';

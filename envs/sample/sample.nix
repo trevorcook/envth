@@ -78,7 +78,7 @@ mkEnvironment rec {
   # The values become the contents of the function.
   # mkEnvironment also adds two functions, ${name}-lib and ${name}-vars
   # which list the defined functions and vars (respectively).
-  lib = {
+  envlib = {
     sample-function-1 = ''
       echo this is function one, with args "$@"
       '';
@@ -103,7 +103,7 @@ mkEnvironment rec {
   # to list contained functions.
 
   # imports: A list of environments to be merged with the current one.
-  # Attributes, `paths` `lib` of imported are added to the environment.
+  # Attributes, `paths` `envlib` of imported are added to the environment.
   # The `imports` are added in order they are listed, so any later
   # imports will override earlier variables and functions of the
   # same name. Additionally, `imports` creates a special attribute

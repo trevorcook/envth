@@ -51,19 +51,19 @@ rec {
       $out/doc/html/. > $out/doc/html/index.html
     '';
 
-  mkEnvLib = attrs@{name, lib ? {}, ENVTH_RESOURCES ? "", ...}:
+  mkEnvLib = attrs@{name, envlib ? {}, ENVTH_RESOURCES ? "", ...}:
     let
       attrs' = filterAttrs (n: v: all (x: n != x)
-                    ["lib" "passthru" "ENVTH_DRV" "shellHook" "paths"
+                    ["envlib" "passthru" "ENVTH_DRV" "shellHook" "paths"
                     ])
                     attrs.passthru.attrs-pre;
       assoc = name: value: ''[${name}]="${toString value}"'';
       assocArray = s: "( ${concatStringsSep " " (mapAttrsToList assoc s)} )";
-      out = mkShellLib name (extras // lib);
+      out = mkShellLib name (extras // envlib);
       extras = {
         "${name}-lib" = ''
           local sep=" "
-          echo "${concatStringsSep "\${sep}" (attrNames (extras // lib ))}"
+          echo "${concatStringsSep "\${sep}" (attrNames (extras // envlib ))}"
           '';
         "${name}-vars" = ''
           declare -A vars=${assocArray attrs'}
@@ -108,17 +108,14 @@ rec {
   show-vars = show-vars-current;
   show-vars-current = make-vars-string (n: v: "${n} = \${"+"${n}}");
   show-vars-default = make-vars-string (n: v: "${n} = ${builtins.toString v}");
-  make-env-lib = self: super@{import_libs ? [], name, ...}:
+  make-envlib = self: super@{import_libs ? [], name, ...}:
     let
-      /* lib0 = mkEnvLib env0; */
-      /* lib0 = env0.lib; */
-      /* import_libs_out = uniquer ( [lib0] ++ import_libs ++ [lib] ); */
-      import_libs_out = uniquer ( import_libs ++ [lib] );
-      lib = mkEnvLib super;
-      lib_doc = mkShellLib-doc name lib;
+      import_libs_out = uniquer ( import_libs ++ [envlib] );
+      envlib = mkEnvLib super;
+      lib_doc = mkShellLib-doc name envlib;
       sourceLib = l: "source ${l}/lib/*\n";
     in {
-      inherit lib;
+      inherit envlib;
       import_libs = import_libs_out;
       importLibsHook = concatMapStrings sourceLib import_libs_out;
       libs_doc = mkImportLibs name import_libs_out;

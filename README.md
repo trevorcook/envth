@@ -201,12 +201,12 @@ This section describes the attributes that can be passed to
 
 ### Other Attributes
 
-- `lib`: The special attribute `lib`, if defined, should be a nix attribute set
+- `envlib`: The special attribute `envlib`, if defined, should be a nix attribute set
   of string-valued attributes. Each attribute name will become a function in the
   resulting shell environment, the definition of which will be the attribute
   value. For example the following definition:
   ```
-  lib = {
+  envlib = {
     list-param = ''
       echo "param 1 is $1"
       '';
@@ -238,7 +238,7 @@ This section describes the attributes that can be passed to
   The libraries and variables of all imported environments will be added
   to the scope of the current environment. Later imports shadow earlier
   imports, and the calling environment's variables shadow all imports. There
-  are exceptions: `paths` and `libs` of imported are added to the current
+  are exceptions: `paths` and `envlibs` of imported are added to the current
   environment.
 
 - `addEnvs`: This attribute expects a list of environments that will be brought
