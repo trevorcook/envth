@@ -27,7 +27,7 @@ rec
                      init-env
                     ];
 
-  env-0-extensions = [ (save-attrs-as "attrs-pre")
+  env0-extensions = [ (save-attrs-as "attrs-pre")
                        make-builder
                        make-envlib
                        (save-attrs-as "attrs-post")

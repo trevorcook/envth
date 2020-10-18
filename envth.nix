@@ -19,7 +19,7 @@ let
     # This is all the utilities going into making it work.
     lib = rec {
       # envth modules.
-      env0 = callPackage ./env-0.nix { inherit envth; };
+      env0 = callPackage ./env0.nix { inherit envth; };
       inits = callPackage ./inits.nix { inherit envth; };
       add-envs = callPackage ./add-envs.nix { inherit envth; };
       imports = callPackage ./imports.nix { inherit envth;};

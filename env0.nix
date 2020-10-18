@@ -1,9 +1,9 @@
-{ envth, lib, callPackage, definition ? ./env-0.nix }: with lib;
+{ envth, lib, callPackage}: with lib;
 with envth.lib.make-environment;
-let defin = definition;
-this = mkEnvironmentWith env-0-extensions rec {
-  name = "env-0";
-  definition = ./env-0.nix;
+let
+this = mkEnvironmentWith env0-extensions rec {
+  name = "env0";
+  definition = ./env0.nix;
   shellHook = ''
     [[ $ENVTH_ENTRY == bin ]] && ENVTH_BUILDDIR=.
     env-set-PS1
