@@ -8,13 +8,16 @@ for working with `nix-shell` environments.
 - Modular environments: Capture common tasks as libraries of shell
   functions. Import other `envth` environments to inherit their
   libraries and variables.
-- Environment Migration: The standard `envth` environment library includes
-  a function, `env-ssh`, that allows a user to `ssh` into the current
-  environment on a foreign host.
+- Environment Migration: `envth` environments provide a build output that
+  reproduces the `nix-shell` environment of the nix definition. The output
+  can be installed with `nix-env` and entered with `enter-<name>`. The standard
+  `envth` shell library, `env0-lib`, provides a function, `env-ssh`, that
+  allows users to `ssh` into the current environment on a foreign host. Further
+  functionality allows users to easily recreate files in the local host at
+  the foreign host.
 
 > Note: `envth` requires a working `nix` installation (available on Linux
-  and macOS). It will, of course, work within the `nixOS` operating system,
-  but that is not required.
+  and macOS). The `nix` based operating system, `nixOS`, is not required.
 
 ## Introduction
 
@@ -27,7 +30,7 @@ conjunction with `nix-shell` in the same way that `stdenv.mkDerivation` and
 `nix-shell` helps to achieve that goal, the goal of `mkEnvironment` is the
 `nix-shell` environment itself.
 
-Unlike `mkDerivation`, `mkEnvironment` requires no `builder`. In fact, each
+Unlike `mkDerivation`, `mkEnvironment` should be given no `builder`. Each
 environment automatically provides a build output--a script to
 launch a shell session that replicates the `nix-shell` session of that
 `mkEnvironment`. This performs the basis for migrating shell sessions between
@@ -149,13 +152,13 @@ arguments by hand, `envth` environments can be called with `callPackage` from a
 [Maximal](maximal-example) examples.
 
 Within an environment, changes to the definition file will be realized after
-running the command `env-reload`. This command has access to a default, `envth`
-provided, `shell.nix` type file that uses a `callPackage` to call the definition.
-Please note that the behavior of the environment may differ when invoked via
-`nix-shell` or `env-reload`, depending on the difference between the user
-supplied `shell.nix` and `envth`'s own internal `shell.nix`. This behavior can
-be controlled by the environment variable `env-caller`, and is discussed in
-[other attributes](other-attributes).
+running the command `env-reload`. This command has access to a default,
+`envth`-generated, `shell.nix` type file that uses a `callPackage` to call the
+definition. Please note that the behavior of the environment may differ when
+invoked via `nix-shell` or `env-reload`, depending on the difference between the
+user supplied `shell.nix` and `envth`'s own internal `shell.nix`. This behavior
+can be controlled by the `mkEnvironment` attribute `env-caller`, and is
+discussed in [other attributes](other-attributes).
 
 ### User Overlay
 
@@ -179,7 +182,7 @@ For linux, add the following to `~/.config/nixpkgs/overlays/envth.nix`:
 > See [nixos wiki](https://nixos.wiki/wiki/Overlays) for alternative overlay
   methods.
 
-## Definition Body
+## `mkEnvironment` Definition Body
 
 This section describes the attributes that can be passed to
 `envth.mkEnvironment`.
@@ -202,10 +205,10 @@ This section describes the attributes that can be passed to
 
 ### Other Attributes
 
-- `envlib`: The special attribute `envlib`, if defined, should be a nix attribute set
-  of string-valued attributes. Each attribute name will become a function in the
-  resulting shell environment, the definition of which will be the attribute
-  value. For example the following definition:
+- `envlib`: The special attribute `envlib`, if defined, should be a nix
+  attribute set of string-valued attributes. Each attribute name will become a
+  function in the resulting shell environment, the definition of which will be
+  the attribute value. For example the following definition:
   ```
   envlib = {
     list-param = ''
@@ -221,9 +224,15 @@ This section describes the attributes that can be passed to
     echo "param 1 is $1"
   }
   ```
+
 - `paths`: This attribute will add executables and libraries to the system
   paths as in `buildInputs` for `stdenv.mkDerivation` or `paths` for
-  `nixpkgs.lib.buildEnv`
+  `nixpkgs.lib.buildEnv`. To make software within the environment, therefore,
+  add the nix package to the definition file's input arguments and `path`, e.g.:
+
+  ```nix
+  {envth,python3}:envth.mkEnvironment { ..., path = [python3]; ...}
+  ```
 
 - `imports`: If defined, `imports` should be a list of other `mkEnvironment`
   style derivations. E.g.:
@@ -242,13 +251,16 @@ This section describes the attributes that can be passed to
   are exceptions: `paths` and `envlibs` of imported are added to the current
   environment.
 
+  > Note: An environment's `shellHook` will not be run when it is imported.
+  The hook can be retrieved with, e.g., `otherHook = envs.other.userShellHook`.
+
 - `addEnvs`: This attribute expects a list of environments that will be brought
    into scope whenever the current environment is in scope. No environment
    variables are created with `addEnvs`, however "`passthru`" variables `envs`
    and `envs-added` can be inspected from within the `nix repl`. See also the
    section on [other `envth` attributes](other-envth-attributes).
 
-- `env-caller`: `envth` builds a nix file that calls the `definition` with
+- `env-caller`: `envth` creates a nix file that calls the `definition` with
   `callPackages`. This is used by some `env0`-supplied `envlib` functions,
   including `env-reload` and `env-repl`.
 
@@ -256,7 +268,7 @@ This section describes the attributes that can be passed to
   a nix file of the form `{definition}:callPackage definition {}`. The location
   of the caller file will be held in the runtime environment variable
   `ENVTH_CALLER`. Alternatively, the string "none", may be supplied, in which
-  case the `definition: definition {}` will be used as the caller.
+  case the expression `{definition}: definition {}` will be used as the caller.
 
   In particular, `env-caller`, should be supplied in cases where a nix file
   more complicated than `with import <nixpkgs> {}; callPackage ./def.nix {}`
@@ -314,14 +326,12 @@ the subsequent definition.
     env_a_definition = envs.env-a.definition;
   }
 ```
-The `addEnv` _*attribute*_ ([Other Attributes](other-attributes)) brings
-additional environments into scope whenever the calling environment is brought
-into scope. For example, in the sample environment, there is an `env-a.nix`
-which declares `addEnvs = [./env-b.nix]`. In that case, in the above example
-`envth.addEnv [./env-a.nix]` would add both `env-a` and `env-b` to the
-resulting `envs` (thus allowing attributes such as
-`env_b_definition = envs.env-b.definition;` to be defined).
-
+Note that `mkEnvironmnet` can be passed an `addEnv` attribute ([Other Attributes](other-attributes)), which is different than, but works in conjunction
+with `envth.addEnv`. That attribute brings additional environments into scope
+whenever the calling environment is brought into scope. For example, in the
+sample environment, there is an `env-a.nix` which declares
+`addEnvs = [./env-b.nix]`. In that case, `envth.addEnv [./env-a.nix]` would add
+both `env-a` and `env-b` to the resulting `envs`.
 
 ## `mkSrc`
 
@@ -333,7 +343,7 @@ defintion:
   xFile = envth.mkSrc ./xFile.md;
 ```
 `mkSrc` expects a single path as an input. Files will be copied individually,
-supplied directories will be copied whole.
+directories will be copied whole.
 
 `mkSrc` returns an attribute set containing the attribute `local` (among
 others). As a result, resources can be referenced within the `mkEnvironment` in
@@ -351,7 +361,7 @@ invoking the build product `enter-<name>`).
 
 When in the environment, just go about your normal command-line shell business.
 The variables and functions defined by the environment will be in scope. The
-default library functions can be listed with `env-0-lib`. Tab completion should
+default library functions can be listed with `env0-lib`. Tab completion should
 work as well, `env-<tab><tab>`.
 
 Some of the more important functions are `env-build`, which is used to build

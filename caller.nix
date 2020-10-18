@@ -1,6 +1,6 @@
 {envth,writeText,path,lib}: with lib; rec {
   # add-caller adds a derivation that can be used to call an
-  # environment with callPackage. This is used by env-0.envlib.env-reload
+  # environment with callPackage. This is used by env0.envlib.env-reload
   add-caller = self: super: {
     ENVTH_CALLER =
       let caller_ = attrByPath ["env-caller"] caller-file super;
