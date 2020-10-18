@@ -1,4 +1,4 @@
-{ env-th } : with env-th.addEnvs [];
+{ envth } : with envth.addEnvs [];
 mkEnvironment rec
 { name = "@ENVNAME@";
   definition = ./@ENVNAME@.nix;

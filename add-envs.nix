@@ -1,48 +1,48 @@
-{env-th, lib, callPackage}: with lib; with builtins; with env-th.lib;
+{envth, lib, callPackage}: with lib; with builtins; with envth.lib;
 rec {
 
-  # Expand env-th to include the list of environments. This uses a fixed
+  # Expand envth to include the list of environments. This uses a fixed
   # point to allow mutually dependent environments to be added.
-  fix-env-th-with = env-list:
+  fix-envth-with = env-list:
     let
-      envs0 = env-th.envs;
+      envs0 = envth.envs;
       envs-added = fix (extends extend-envs (_: {}));
       extend-envs = self: super:
         let
           envs = foldr add-env super env-list;
           add-env = f: envs:
-            let env = callEnv (env-th.override { envs = envs0 // self; }) f;
+            let env = callEnv (envth.override { envs = envs0 // self; }) f;
             in envs // env.envs-added // (setAttrByPath [env.name] env);
         in envs;
 
-    in { env-th = env-th.override { envs = envs0 // envs-added; };
+    in { envth = envth.override { envs = envs0 // envs-added; };
          inherit envs-added; };
 
-  # Exported utility for use with `env-th.addEnvs`
+  # Exported utility for use with `envth.addEnvs`
   addEnvs = addEnvs-nonfix;
   # This was the original addEnvs utility. However, interactions with
   # add-envs caused the possiblilty of circular import cycles.
-  addEnvs-fix = env-list: (fix-env-th-with env-list).env-th;
-  # This will add environments to `env-th`. Environments are added in order.
+  addEnvs-fix = env-list: (fix-envth-with env-list).envth;
+  # This will add environments to `envth`. Environments are added in order.
   # Later environments may depend on earlier envioronments.
   addEnvs-nonfix =
     let
-      make-new = env-th: env_:
-        let env = callEnv env-th env_;
-            envs = env-th.envs // env.envs-added // (setAttrByPath [env.name] env);
+      make-new = envth: env_:
+        let env = callEnv envth env_;
+            envs = envth.envs // env.envs-added // (setAttrByPath [env.name] env);
             /* envs = env.envs // (setAttrByPath [env.name] env); */
-        in env-th.override { inherit envs; };
-    in foldl' make-new env-th ;
+        in envth.override { inherit envs; };
+    in foldl' make-new envth ;
 
-  # Overlay that adds `addEnvs` atribute to the `env-th.envs` attribute of
+  # Overlay that adds `addEnvs` atribute to the `envth.envs` attribute of
   # imported environments.
   add-envs = self: super:
     let
       envs-in = attrByPath ["addEnvs"] [] super;
-      envs-orig = env-th.envs;
-      update = fix-env-th-with envs-in;
+      envs-orig = envth.envs;
+      update = fix-envth-with envs-in;
       envs-added = if envs-in == [] then {} else update.envs-added;
-      envs = env-th.envs // envs-added ;
+      envs = envth.envs // envs-added ;
     in
       { passthru =  super.passthru // {
           inherit envs envs-added envs-orig;
@@ -52,89 +52,89 @@ rec {
 
   # The below are two other implementations of this file. I was trying to
   # work around the circular dependencies problem of `addEnv`, noted above.
-  /* WORKING WITH (fix extends env-th) doesn't solve problem.
+  /* WORKING WITH (fix extends envth) doesn't solve problem.
   #isPath = v: builtins.typeOf v == "path";
-  mkEnvs = env-th: x:
+  mkEnvs = envth: x:
       let
-        env = callEnv env-th x;
-        env-envs = concatMap (mkEnvs env-th) env.passthru.envs-in;
+        env = callEnv envth x;
+        env-envs = concatMap (mkEnvs envth) env.passthru.envs-in;
       in [{ name = env.name; value = env; }] ++ env-envs;
-  # Expand env-th to include the list of environments. This uses a fixed
+  # Expand envth to include the list of environments. This uses a fixed
   # point to allow mutually dependent environments to be added.
-  fix-env-th-with = env-list:
+  fix-envth-with = env-list:
     let
-      env-th' = fix (extends extend-env-th (_: env-th));
-      extend-env-th = self: super:
+      envth' = fix (extends extend-envth (_: envth));
+      extend-envth = self: super:
         let
           envs-added = concatMap (mkEnvs self) env-list;
           envs-extra = listToAttrs envs-added;
-        in env-th.override { envs = super.envs // envs-extra;};
-      envs-added = concatMap (mkEnvs env-th') env-list;
-    in { env-th = env-th'; inherit envs-added; };
+        in envth.override { envs = super.envs // envs-extra;};
+      envs-added = concatMap (mkEnvs envth') env-list;
+    in { envth = envth'; inherit envs-added; };
 
-  # Exported utility for use with `env-th.addEnvs`
-  addEnvs = env-list: (fix-env-th-with env-list).env-th;
+  # Exported utility for use with `envth.addEnvs`
+  addEnvs = env-list: (fix-envth-with env-list).envth;
 
-  # Overlay that adds `addEnvs` atribute to the `env-th.envs` attribute of
+  # Overlay that adds `addEnvs` atribute to the `envth.envs` attribute of
   # imported environments.
   add-envs = self: super:
     let
-      # env-th' = env-th.override { envs = envs-all; };
+      # envth' = envth.override { envs = envs-all; };
       envs-in = attrByPath ["addEnvs"] [] super;
-      update = fix-env-th-with envs-in;
+      update = fix-envth-with envs-in;
       envs-added = update.envs-added;
-      envs-all = update.env-th.envs;
+      envs-all = update.envth.envs;
       envs-extra = listToAttrs envs-added;
     in
       { passthru =  super.passthru // {
           inherit envs-in envs-added envs-extra;
           envs-added' = map (x: x.name) envs-added;
           envs = envs-all;
-          #inherit env-th env-th';
+          #inherit envth envth';
         };
       }; */
 
 
 #ORIGINAL
   #isPath = v: builtins.typeOf v == "path";
-  /* mkEnvs = env-th: x:
+  /* mkEnvs = envth: x:
       let
-        env = callEnv env-th x;
-        env-envs = concatMap (mkEnvs env-th) env.passthru.envs-in;
+        env = callEnv envth x;
+        env-envs = concatMap (mkEnvs envth) env.passthru.envs-in;
       in [{ name = env.name; value = env; }] ++ env-envs; */
-  /* # Expand env-th to include the list of environments. This uses a fixed
+  /* # Expand envth to include the list of environments. This uses a fixed
   # point to allow mutually dependent environments to be added.
-  fix-env-th-with = env-list:
+  fix-envth-with = env-list:
     let
-      env-th' = fix extend-env-th (_: env-th);
-      # self and super are `env-th`s
-      extend-env-th = self: super:
+      envth' = fix extend-envth (_: envth);
+      # self and super are `envth`s
+      extend-envth = self: super:
         let
           envs-added = concatMap (mkEnvs self) env-list;
           envs-extra = listToAttrs envs-added;
-        in env-th.override { envs = super.envs // envs-extra;};
-      envs-added = concatMap (mkEnvs env-th') env-list;
-    in { env-th = env-th'; inherit envs-added; };
+        in envth.override { envs = super.envs // envs-extra;};
+      envs-added = concatMap (mkEnvs envth') env-list;
+    in { envth = envth'; inherit envs-added; };
 
-  # Exported utility for use with `env-th.addEnvs`
-  addEnvs = env-list: (fix-env-th-with env-list).env-th;
+  # Exported utility for use with `envth.addEnvs`
+  addEnvs = env-list: (fix-envth-with env-list).envth;
 
-  # Overlay that adds `addEnvs` atribute to the `env-th.envs` attribute of
+  # Overlay that adds `addEnvs` atribute to the `envth.envs` attribute of
   # imported environments.
   add-envs = self: super:
     let
-      # env-th' = env-th.override { envs = envs-all; };
+      # envth' = envth.override { envs = envs-all; };
       envs-in = attrByPath ["addEnvs"] [] super;
-      update = fix-env-th-with envs-in;
+      update = fix-envth-with envs-in;
       envs-added = update.envs-added;
-      envs-all = update.env-th.envs;
+      envs-all = update.envth.envs;
       envs-extra = listToAttrs envs-added;
     in
       { passthru =  super.passthru // {
           inherit envs-in envs-added envs-extra;
           envs-added' = map (x: x.name) envs-added;
           envs = envs-all;
-          #inherit env-th env-th';
+          #inherit envth envth';
         };
       };*/
 }

@@ -1,5 +1,5 @@
-{callPackage, lib, env-th, env0}: with builtins; with lib;
-with env-th.lib;
+{callPackage, lib, envth}: with builtins; with lib;
+with envth.lib;
 let
   # unique list, keeping last instances in list.
   uniquer = ls: reverseList (unique (reverseList ls));
@@ -14,7 +14,7 @@ rec
     # Merge an imported env into the current attribute set.
     merge-import-env = env_: attrs:
       let
-        env = callEnv env-th env_;
+        env = callEnv envth env_;
         env-attrs = restrict-passthru-attrs env.passthru.attrs-post;
         restrict-passthru-attrs = env: env //
           { passthru = filterAttrs

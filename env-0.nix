@@ -1,5 +1,5 @@
-{ env-th, lib, callPackage, definition ? ./env-0.nix }: with lib;
-with env-th.lib.make-environment;
+{ envth, lib, callPackage, definition ? ./env-0.nix }: with lib;
+with envth.lib.make-environment;
 let defin = definition;
 this = mkEnvironmentWith env-0-extensions rec {
   name = "env-0";
@@ -9,6 +9,8 @@ this = mkEnvironmentWith env-0-extensions rec {
     env-set-PS1
     env-PATH-nub
     ENVTH_OUT=''${ENVTH_OUT:=$out}
+    export ENVTH_TEMP=''${ENVTH_TEMP:=$(mktemp -d "''${TMPDIR:-/tmp}/ENVTH_$name.XXX")}
+    trap 'rm -r $ENVTH_TEMP' EXIT
     '';
   /* ENVTH_ENV0 = this; */
   passthru = rec {
@@ -20,33 +22,36 @@ this = mkEnvironmentWith env-0-extensions rec {
       ENVTH_DRV = "";
       ENVTH_OUT = "";
       ENVTH_CALLER = "";
-      ENVTH_NOCLEANUP = ""; };
+      ENVTH_NOCLEANUP = "";
+      ENVTH_TEMP = ""; };
     };
   envlib = {
 
-    # BUILDING The environment
     env-build = ''
+      # Build the output. (A script that enters an interactive
+      # session with the current environment variables.)
       if [[ $ENVTH_ENTRY != bin ]]; then
-        mkdir -p $(env-home-dir)/.env-th
-        echo "building... ($ENVTH_BUILDDIR/.env-th/build.log)"
-        nix-build "$@" -o "$ENVTH_BUILDDIR/.env-th/result" \
+        mkdir -p $(env-home-dir)/.envth
+        echo "building... ($ENVTH_BUILDDIR/.envth/build.log)"
+        nix-build "$@" -o "$ENVTH_BUILDDIR/.envth/result" \
           "$ENVTH_BUILDDIR/$definition" \
-          &> "$ENVTH_BUILDDIR/.env-th/build.log"
-        ENVTH_OUT="$( readlink $ENVTH_BUILDDIR/.env-th/result )"
-      fi
-      echo $ENVTH_OUT
-            '';
+          &> "$ENVTH_BUILDDIR/.envth/build.log"
+        ENVTH_OUT="$( readlink $ENVTH_BUILDDIR/.envth/result )"
+      fi'';
     env-cleanup = ''
+      # Cleanup environment variables. Not sure
+      # if this is needed. Am sure its poorly implemented.
+      [[ -n ENVTH_NOCLEANUP ]] || return
       unset ENVTH_BUILDDIR ENVTH_RESOURCES ENVTH_ENTRY ENVTH_DRV \
             ENVTH_OUT ENVTH_CALLER
-      '';
+      #Dont remove ENVTH_TEMP, that will be reused in reload.'';
     env-entry-path = ''
       # Echo the enter-$name location, building if necessary.
       [[ -e $ENVTH_OUT ]] || env-build &> /dev/null
       echo -n "$ENVTH_OUT/bin/enter-$name"
       '';
     env-reload = ''
-      # Reload env, passing inputs as commands to be run upon entry.
+      # Reload env, passing inputs as commands to be run upon reentry.
       cmds="$@" ; [[ -z $cmds ]] && cmds=return ; cmds="$cmds ; return"
       env-reload-with-args --command "$cmds"
       '';
@@ -56,41 +61,37 @@ this = mkEnvironmentWith env-0-extensions rec {
       local pth="$(env-home-dir)"
       local enter="$(env-entry-path)"
       local method=$ENVTH_ENTRY
-      local caller=$ENVTH_CALLER
-      [[ -n ENVTH_NOCLEANUP ]] && env-cleanup
+      # This saturates the definition inputs
+      local called=$(env-call $pth/$definition)
+      env-cleanup
       if [[ $method == bin ]]; then
         exec $enter "$@"
-      elif [[ $caller == none ]]; then
-        exec nix-shell "$@" $pth/$definition
       else
-        exec nix-shell --argstr definition $pth/$definition "$@" $caller
-      fi
-      '';
-
+        exec nix-shell "$@" $called
+      fi'';
+    env-call = ''
+      # Make a nix file that calls the input file using the ENVTH_CALLER.
+      # Basically, an ad hoc `shell.nix` that calls the definition with
+      # callPackage.
+      local def=$1
+      echo "import $ENVTH_CALLER { definition = $def; }"\
+         > $ENVTH_TEMP/env-call-$(basename $def)
+      echo $ENVTH_TEMP/env-call-$(basename $def)'';
     env-repl = ''
-      local pth="$(env-home-dir)"
-      local method=$ENVTH_ENTRY
-      local caller=$ENVTH_CALLER
       local pthdef
-      if [[ $method == bin ]]; then
+      if [[ $ENVTH_ENTRY == bin ]]; then
         pthdef="$definition_NIXSTORE"
       else
-        pthdef="$pth/$definition"
+        pthdef="$(env-home-dir)/$definition"
       fi
-      if [[ $caller == none ]]; then
-          nix repl $pthdef
-      else
-        nix repl --argstr definition $pthdef $caller
-      fi
-      '';
+      nix repl $(env-call $pthdef)'';
 
     env-reload-here = ''
       # Re-enter the environment in current directory using the
       # file pointed to by `definition`.
       ENVTH_BUILDDIR="."
       unset ENVTH_ENTRY
-      env-reload "$@"
-    '';
+      env-reload "$@"'';
     env-deploy = ''
       ## Migrating to other hosts
       # Use in conjunction with NIX_SSHOPTS for versitile copies.
@@ -101,8 +102,6 @@ this = mkEnvironmentWith env-0-extensions rec {
       env-deploy "$1" && env-ssh-enter "$(env-entry-path)" "$@"
       '';
     env-ssh-enter = ''
-      # Mind the quotes on the called commands.
-      # e.g. env-ssh-enter HOST '"echo hi; return"'
       local enter="$1"; shift
       local ssh_cond
       local host="$1"; shift

@@ -1,5 +1,5 @@
-{env-th, name, python, callPackage}:
-env-th.mkEnvironment rec {
+{envth, name, python, callPackage}:
+envth.mkEnvironment rec {
   inherit name;
   definition = ./python-env.nix;
   passthru = {
@@ -7,7 +7,7 @@ env-th.mkEnvironment rec {
     addPackages = f: let
       next-python = python.override (old: {
         extraLibs = old.extraLibs ++ (f python.pkgs);});
-      in callPackage definition {inherit name env-th callPackage;
+      in callPackage definition {inherit name envth callPackage;
                                  python = next-python;};
     };
   }

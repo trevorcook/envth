@@ -1,1 +1,1 @@
-import ./env-th.nix
+import ./envth.nix

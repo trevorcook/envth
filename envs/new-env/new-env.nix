@@ -1,4 +1,4 @@
-{ env-th, stdenv }: env-th.mkEnvironment
+{ envth, stdenv }: envth.mkEnvironment
 { name = "new-env";
   definition = ./new-env.nix;
   paths = [];

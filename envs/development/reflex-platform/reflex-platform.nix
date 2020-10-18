@@ -1,5 +1,5 @@
-{ env-th, buildEnv, reflex-platform, project-file ? ./reflex-project-default.nix }:
-with env-th;
+{ envth, buildEnv, reflex-platform, project-file ? ./reflex-project-default.nix }:
+with envth;
 let
   checkghc = ''
     # Checks: 1 input; ghc or ghcjs.
@@ -25,7 +25,7 @@ in mkEnvironment rec
       ''; */
     reflex-enter-shell = ''
       # Enters the reflex shell as per the reflex way, but runs the
-      # env-th shellHook to initialize the shell as per env-th.
+      # envth shellHook to initialize the shell as per envth.
       ${checkghc}
       ENVTH_NOCLEANUP=1 env-reload-with-args -A reflex.project.shells.$ghc \
        --command "name=reflex-$ghc; $shellHook return"

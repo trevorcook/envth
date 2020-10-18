@@ -1,13 +1,12 @@
-{stdenv, env-th, lib}:
+{stdenv, envth, lib}:
 with lib;
-with env-th.lib.resources;
-with env-th.lib.envlib;
-with env-th.lib.init-attrs;
-with env-th.lib.init-env;
-with env-th.lib.builder;
-with env-th.lib.imports;
-with env-th.lib.add-envs;
-with env-th.lib.reloader;
+with envth.lib.resources;
+with envth.lib.envlib;
+with envth.lib.inits;
+with envth.lib.builder;
+with envth.lib.imports;
+with envth.lib.add-envs;
+with envth.lib.caller;
 rec
 {
   # Each extension represents a step of processing. Each extension has a type,
@@ -19,7 +18,7 @@ rec
   env-extensions = [ (save-attrs-as "attrs-pre")
                      set-default-build-dir
                      gather-resources
-                     add-reloader
+                     add-caller
                      add-envs
                      add-imports
                      make-builder

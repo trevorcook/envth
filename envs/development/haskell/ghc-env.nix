@@ -1,5 +1,5 @@
-{env-th, name, selectFrom, haskellPackages}: #, callPackage}:
-env-th.mkEnvironment rec {
+{envth, name, selectFrom, haskellPackages}: #, callPackage}:
+envth.mkEnvironment rec {
   inherit name;
   definition = ./ghc-env.nix;
   passthru = {
@@ -9,7 +9,7 @@ env-th.mkEnvironment rec {
     addPackages = f: let
       next-selectFrom = pkgs: (selectFrom pkgs) ++ (f pkgs);
       in import definition
-             { inherit name env-th haskellPackages;
+             { inherit name envth haskellPackages;
                 selectFrom = next-selectFrom; };
     };
   }

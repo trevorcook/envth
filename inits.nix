@@ -1,5 +1,7 @@
-{lib, env-th}:
-with lib; with env-th.lib;
+{lib, envth}:
+with lib; with envth.lib;
+# Utilities for initializing the environment processing (save-attrs-by),
+# and initializing the running shell (init-env/set-default-build-dir)
 rec {
 
   # ???
@@ -15,5 +17,15 @@ rec {
   set-default-build-dir = self: super@{definition, ...}:
     diffAttrs { ENVTH_BUILDDIR = dirOf (toString definition);} super;
 
+  init-env = self:
+    super@{ shellHook ? "", name, ... }:
+    {  shellHook = ''
+         ${if self ? importLibsHook then self.importLibsHook else ""}
+         ''
+         + envth.lib.env0.shellHook
+         + shellHook ;
+       userShellHook = shellHook;
+
+    };
 
 }
