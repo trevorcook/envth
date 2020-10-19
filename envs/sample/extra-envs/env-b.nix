@@ -1,6 +1,6 @@
-{env-th}:
-let pyenv = env-th.envs.python38.addPackages (ps: [ps.numpy]); in
-with env-th.addEnvs [pyenv]; mkEnvironment
+{envth}:
+let pyenv = envth.envs.python38.addPackages (ps: [ps.numpy]); in
+with envth.addEnvs [pyenv]; mkEnvironment
 { name = "env-b";
   definition = ./env-b.nix;
   varB = "varB set in env-b";

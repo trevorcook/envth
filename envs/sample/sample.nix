@@ -1,4 +1,4 @@
-{env-th , figlet }: with env-th.addEnvs [ extra-envs/env-a.nix ];
+{envth , figlet }: with envth.addEnvs [ extra-envs/env-a.nix ];
 mkEnvironment rec {
 
   # REQUIRED ARGS ####################
@@ -24,7 +24,7 @@ mkEnvironment rec {
   varSample4 = { __toString = _ : "I have a nix expression.";
            dat = x: "x = ${x}"; };
 
-  # The following attributes demonstrate `env-th.mkSrc`, a utility
+  # The following attributes demonstrate `envth.mkSrc`, a utility
   # used to tag resources which can be "localized", that is, copied
   # from /nix/store to a local directory. Localized resources will
   # have the same file structure as the original.
@@ -45,7 +45,7 @@ mkEnvironment rec {
   shellHook = ''
     b_file="no/such/file"
     echo "~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~" | lolcat
-    sample-banner env-th
+    sample-banner envth
     echo "~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~" | lolcat
     cat <<'EOF'
     Hello from ${name}!
@@ -109,14 +109,14 @@ mkEnvironment rec {
   # same name. Additionally, `imports` creates a special attribute
   # `import_libs`, listing all the `libs` of imported environments.
   imports = [
-    envs.env-a # env-a is merged into env-th.envs on line 10 of this file.
+    envs.env-a # env-a is merged into envth.envs on line 10 of this file.
                # Its definition is in scope, this line merges it with the
                # current environment.
     extra-envs/env-c.nix  # path to env file will be loaded using callPackage
     ];
 
   # addEnvs: Export extra environments.
-  # Using `env-th.addEnvs`, as seen at the top of this file, will bring
+  # Using `envth.addEnvs`, as seen at the top of this file, will bring
   # additional environments into scope so that they can be referenced
   # within the nix definition file. Declaring an `addEnvs` attribute, such as
   # below, puts extra environmnets in scope whenever the calling environment is

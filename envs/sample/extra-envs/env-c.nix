@@ -1,4 +1,4 @@
-{env-th, lolcat}: with env-th; mkEnvironment
+{envth, lolcat}: with envth; mkEnvironment
 { name = "env-c";
   definition = ./env-c.nix;
   paths= [ lolcat ];

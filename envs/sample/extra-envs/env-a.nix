@@ -1,8 +1,8 @@
-{env-th}:
- let pyenv = env-th.envs.python38.addPackages (ps: [ps.toolz]); in
+{envth}:
+ let pyenv = envth.envs.python38.addPackages (ps: [ps.toolz]); in
   # Add a version of python38 with the "toolz" package, and "./env-b.nix"
-  # to the environments in `env-th` and bring into scope.
-with env-th.addEnvs [pyenv ./env-b.nix];
+  # to the environments in `envth` and bring into scope.
+with envth.addEnvs [pyenv ./env-b.nix];
 mkEnvironment
 { name = "env-a";
   definition = ./env-a.nix;
