@@ -1,9 +1,9 @@
 { envth, buildEnv, reflex-platform, project-file ? ./reflex-project-default.nix }:
 with envth;
 let
-  checkghc = ''
+  checkghc = fcn: ''
     # Checks: 1 input; ghc or ghcjs.
-    local use="Use: enter-reflex-shell {ghc|gjcjs}"
+    local use="Use: ${fcn} {ghc|gjcjs}"
     [[ $# != 1 ]] && { echo $use ; return; }
     local ghc=$1
     [[ -n ''${ghc/?(ghc|ghcjs)/} ]]  && { echo $use; return; }
@@ -26,7 +26,7 @@ in mkEnvironment rec
     reflex-enter-shell = ''
       # Enters the reflex shell as per the reflex way, but runs the
       # envth shellHook to initialize the shell as per envth.
-      ${checkghc}
+      ${checkghc "reflex-enter-shell"}
       ENVTH_NOCLEANUP=1 env-reload-with-args -A reflex.project.shells.$ghc \
        --command "name=reflex-$ghc; $shellHook return"
       '';

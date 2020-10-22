@@ -41,7 +41,7 @@ this = mkEnvironmentWith env0-extensions rec {
     env-cleanup = ''
       # Cleanup environment variables. Not sure
       # if this is needed. Am sure its poorly implemented.
-      [[ -n ENVTH_NOCLEANUP ]] || return
+      [[ -n ENVTH_NOCLEANUP ]] && return
       unset ENVTH_BUILDDIR ENVTH_RESOURCES ENVTH_ENTRY ENVTH_DRV \
             ENVTH_OUT ENVTH_CALLER
       #Dont remove ENVTH_TEMP, that will be reused in reload.'';
@@ -69,14 +69,23 @@ this = mkEnvironmentWith env0-extensions rec {
       else
         exec nix-shell "$@" $called
       fi'';
-    env-call = ''
+    /* env-call = ''
       # Make a nix file that calls the input file using the ENVTH_CALLER.
       # Basically, an ad hoc `shell.nix` that calls the definition with
       # callPackage.
       local def=$1
       echo "import $ENVTH_CALLER { definition = $def; }"\
          > $ENVTH_TEMP/env-call-$(basename $def)
+      echo $ENVTH_TEMP/env-call-$(basename $def)''; */
+    env-call = ''
+      # Make a nix file that calls the input file using the ENVTH_CALLER.
+      # Basically, an ad hoc `shell.nix` that calls the definition with
+      # callPackage.
+      local def=$1
+      echo "import $ENVTH_CALLER $ENVTH_CALLSET { definition = $def; }" \
+         > $ENVTH_TEMP/env-call-$(basename $def)
       echo $ENVTH_TEMP/env-call-$(basename $def)'';
+
     env-repl = ''
       local pthdef
       if [[ $ENVTH_ENTRY == bin ]]; then

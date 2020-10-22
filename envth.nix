@@ -36,7 +36,7 @@ let
       diffAttrs = a: b: removeAttrs a (attrNames b);
       };
 
-    # These are the exported utilities that people will use.
+    # These are the exported utilities.
     inherit envs;
     addEnvs = lib.add-envs.addEnvs;
     mkSrc = lib.resources.mkSrc;

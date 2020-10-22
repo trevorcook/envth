@@ -55,10 +55,8 @@ rec {
     let
       attrs' = filterAttrs (n: v: all (x: n != x)
                     ["envlib" "passthru" "ENVTH_DRV" "shellHook" "paths"
-                    ])
+                     "env-caller"])
                     attrs.passthru.attrs-pre;
-      assoc = name: value: ''[${name}]="${toString value}"'';
-      assocArray = s: "( ${concatStringsSep " " (mapAttrsToList assoc s)} )";
       out = mkShellLib name (extras // envlib);
       extras = {
         "${name}-lib" = ''
@@ -66,7 +64,8 @@ rec {
           echo "${concatStringsSep "\${sep}" (attrNames (extras // envlib ))}"
           '';
         "${name}-vars" = ''
-          declare -A vars=${assocArray attrs'}
+          declare -A vars=${ show-attrs-as-assocArray
+                               (mapAttrs (_: toString) attrs')}
           if [[ $# == 0 ]] || { [[ $# == 1 ]] && [[ "$1" == "--current" ]]; }; then
             for key in "''${!vars[@]}"; do
                 echo "$key = $(eval echo \$$(echo $key))"
@@ -94,13 +93,33 @@ rec {
             mkdir -p $dir
             echo "%% Making Local Resources in $dir %%%%%%%%%%%%%%%%%%%%%%%"
             local arr
-            eval "arr=( $ENVTH_RESOURCES )"
+            eval arr=( ${ENVTH_RESOURCES} )
             for i in "''${arr[@]}"; do
               env-cp-resource-to "$dir" $i
             done
             '';
-        };
+        } //
+        ( if attrs ? passthru.env-caller then
+          { "${name}-caller" = ''
+            echo "${show-caller attrs.passthru.env-caller}"
+            '';
+          } else {});
     in out;
+
+  show-caller = env-caller: if isAttrs env-caller then
+      show-vars-default env-caller
+    else toString env-caller;
+
+  show-attrs-with-sep = f : sep: attrs:
+    concatStringsSep sep (mapAttrsToList f attrs);
+  show-attrs-as-assocArray = attrs:
+    "( ${show-attrs-with-sep show-assocArray-value " " attrs} )";
+  show-attrs-as-nix-set = attrs:
+    "{ ${show-attrs-with-sep show-nix-declaration " " attrs} }";
+
+  show-nonPaths = x: if typeOf x == path then x else toString x;
+  show-assocArray-value = name: value: ''[${name}]="${value}"'';
+  show-nix-declaration = name: value: ''${name} = ${value};'';
 
   make-vars-string = f: attrs:
     concatStringsSep "\n" (mapAttrsToList f attrs);
