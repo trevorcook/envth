@@ -32,11 +32,19 @@ this = mkEnvironmentWith env0-extensions rec {
       # session with the current environment variables.)
       if [[ $ENVTH_ENTRY != bin ]]; then
         mkdir -p $(env-home-dir)/.envth
+        # Make the expression for a callPackage to the current definition.
+        local called=$(env-call $ENVTH_BUILDDIR/$definition)
+        # Check if building an attribute, outlink becomes attribute name.
+        local result=result
+        local attropt=$(getopt -o A: --long attrs: -- "$@")
+        [[ $(arg-n 1 $attropt) != -- ]] && eval "result=$(arg-n 2 $attropt)"
+        # Do build
         echo "building... ($ENVTH_BUILDDIR/.envth/build.log)"
-        nix-build "$@" -o "$ENVTH_BUILDDIR/.envth/result" \
-          "$ENVTH_BUILDDIR/$definition" \
+        nix-build "$@" -o "$ENVTH_BUILDDIR/.envth/$result" \
+          "$called" \
           &> "$ENVTH_BUILDDIR/.envth/build.log"
-        ENVTH_OUT="$( readlink $ENVTH_BUILDDIR/.envth/result )"
+        [[ $result ==  result ]] && \
+          ENVTH_OUT="$( readlink $ENVTH_BUILDDIR/.envth/$result )"
       fi'';
     env-cleanup = ''
       # Cleanup environment variables. Not sure
@@ -69,20 +77,13 @@ this = mkEnvironmentWith env0-extensions rec {
       else
         exec nix-shell "$@" $called
       fi'';
-    /* env-call = ''
-      # Make a nix file that calls the input file using the ENVTH_CALLER.
-      # Basically, an ad hoc `shell.nix` that calls the definition with
-      # callPackage.
-      local def=$1
-      echo "import $ENVTH_CALLER { definition = $def; }"\
-         > $ENVTH_TEMP/env-call-$(basename $def)
-      echo $ENVTH_TEMP/env-call-$(basename $def)''; */
     env-call = ''
       # Make a nix file that calls the input file using the ENVTH_CALLER.
+      # and ENVTH_CALLATTRS
       # Basically, an ad hoc `shell.nix` that calls the definition with
       # callPackage.
       local def=$1
-      echo "import $ENVTH_CALLER $ENVTH_CALLSET { definition = $def; }" \
+      echo "import $ENVTH_CALLER $ENVTH_CALLATTRS { definition = $def; }" \
          > $ENVTH_TEMP/env-call-$(basename $def)
       echo $ENVTH_TEMP/env-call-$(basename $def)'';
 
@@ -218,8 +219,8 @@ this = mkEnvironmentWith env0-extensions rec {
       '';
     env-lib = ''
       local file name
-      # Show all libs in order of their import, but point to the
-      # Joined directory where all imports are present.
+      # Show all libs in order of their import and give pointer to their
+      # markups.
       for l in $import_libs; do
         for i in $(ls $l/doc/html); do
           [[ $i != index.html ]] && file=$i
@@ -232,8 +233,13 @@ this = mkEnvironmentWith env0-extensions rec {
 
       EOF
       done
-      echo "# Source for all libs can be found at:
+      echo "~~~~~ source markups at ~~~~~
       file://$libs_doc/doc/html/index.html"
+      '';
+    env-lib-reload = ''
+      # Reload the latest source without recompiling the whole environment
+      env-build -A envlib
+      source .envth/envlib/lib/$name
       '';
 
   };
