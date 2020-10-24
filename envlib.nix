@@ -13,6 +13,10 @@ rec {
     }
 
     '';
+  mkShellFunctionExports = attrs:
+    show-attrs-with-sep (n: _: ''export -f ${n}
+    '') "" attrs;
+
   mkShellLibDoc = name: lib-file: runCommand "${name}.html" {} ''
     ${pandoc}/bin/pandoc -f markdown -s --metadata pagetitle=${name} \
       <(  cat <( echo '```bash' ) \
@@ -23,7 +27,7 @@ rec {
   mkShellLib = name: lib:
     let lib-file = writeTextFile
           { name = "${name}-shellLib";
-            text = mkShellFunctions lib;
+            text = (mkShellFunctions lib) + (mkShellFunctionExports lib);
           };
     in runCommand name {} ''
     # Make the Shell Function File

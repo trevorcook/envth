@@ -5,7 +5,7 @@ this = mkEnvironmentWith env0-extensions rec {
   name = "env0";
   definition = ./env0.nix;
   shellHook = ''
-    [[ $ENVTH_ENTRY == bin ]] && ENVTH_BUILDDIR=.
+    [[ "$ENVTH_ENTRY" == bin ]] && ENVTH_BUILDDIR=.
     env-set-PS1
     env-PATH-nub
     ENVTH_OUT=''${ENVTH_OUT:=$out}
@@ -49,7 +49,7 @@ this = mkEnvironmentWith env0-extensions rec {
     env-cleanup = ''
       # Cleanup environment variables. Not sure
       # if this is needed. Am sure its poorly implemented.
-      [[ -n ENVTH_NOCLEANUP ]] && { echo no-return; return ;}
+      [[ -n ENVTH_NOCLEANUP ]] && { return;}
       unset ENVTH_BUILDDIR ENVTH_RESOURCES ENVTH_ENTRY ENVTH_DRV \
             ENVTH_OUT ENVTH_CALLER
       #Dont remove ENVTH_TEMP, that will be reused in reload.'';
