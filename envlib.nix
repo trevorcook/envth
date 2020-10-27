@@ -24,10 +24,12 @@ rec {
       <( echo '```' ) ) \
       -o $out
     '';
+
+  mkShellLibText = lib: (mkShellFunctions lib) + (mkShellFunctionExports lib);
   mkShellLib = name: lib:
     let lib-file = writeTextFile
           { name = "${name}-shellLib";
-            text = (mkShellFunctions lib) + (mkShellFunctionExports lib);
+            text = mkShellLibText lib;
           };
     in runCommand name {} ''
     # Make the Shell Function File
@@ -55,14 +57,71 @@ rec {
       $out/doc/html/. > $out/doc/html/index.html
     '';
 
-  mkEnvLib = attrs@{name, envlib ? {}, ENVTH_RESOURCES ? "", ...}:
+  mkEnvLibExtras = attrs@{name, envlib ? {}, ENVTH_RESOURCES ? "", ...}:
     let
       attrs' = filterAttrs (n: v: all (x: n != x)
                     ["envlib" "passthru" "ENVTH_DRV" "shellHook" "paths"
                      "env-caller"])
                     attrs.passthru.attrs-pre;
-      out = mkShellLib name (extras // envlib);
       extras = {
+      "${name}-lib" = ''
+        local sep=" "
+        echo "${concatStringsSep "\${sep}" (attrNames (extras // envlib ))}"
+        '';
+      "${name}-vars" = ''
+        declare -A vars=${ show-attrs-as-assocArray
+                             (mapAttrs (_: toString) attrs')}
+        if [[ $# == 0 ]] || { [[ $# == 1 ]] && [[ "$1" == "--current" ]]; }; then
+          for key in "''${!vars[@]}"; do
+              echo "$key = $(eval echo \$$(echo $key))"
+          done
+        elif [[ $# == 1 ]] && [[ $1 == --original ]]; then
+          for key in "''${!vars[@]}"; do
+            echo "$key = ''${vars[$key]}"
+          done
+        elif [[ $# == 1 ]] && [[ $1 == --changed ]]; then
+          for key in "''${!vars[@]}"; do
+            curval="$(eval echo \$$(echo $key))"
+            origval="''${vars[$key]}"
+            if [[ $curval != $origval ]]; then
+              echo "$key = $curval ($origval)"
+            fi
+          done
+        fi
+        '';
+      "${name}-localize" = ''''${name}-localize-to "$(env-home-dir)" "$@"'';
+      "${name}-localize-to" = ''
+          ## For recreating original source environment relative to some directory.
+          local use="Use: env-localize-to <dir>"
+          [[ $# != 1 ]] && { echo $use ; return; }
+          local dir="$1"
+          mkdir -p $dir
+          echo "%% Making Local Resources in $dir %%%%%%%%%%%%%%%%%%%%%%%"
+          local arr
+          eval arr=( ${ENVTH_RESOURCES} )
+          for i in "''${arr[@]}"; do
+            env-cp-resource-to "$dir" $i
+          done
+          '';
+      } //
+      ( if attrs ? passthru.env-caller then
+        { "${name}-caller" = ''
+          echo "${show-caller attrs.passthru.env-caller}"
+          '';
+        } else {});
+  in extras;
+
+  mkEnvLibText = attrs@{envlib ? {},...}:
+    mkShellLibText ((mkEnvLibExtras attrs) // envlib);
+  mkEnvLib = attrs@{name, envlib ? {}, ENVTH_RESOURCES ? "", ...}:
+    let
+      /* attrs' = filterAttrs (n: v: all (x: n != x)
+                    ["envlib" "passthru" "ENVTH_DRV" "shellHook" "paths"
+                     "env-caller"])
+                    attrs.passthru.attrs-pre; */
+      out = mkShellLib name (extras // envlib);
+      extras = mkEnvLibExtras attrs;
+       /* {
         "${name}-lib" = ''
           local sep=" "
           echo "${concatStringsSep "\${sep}" (attrNames (extras // envlib ))}"
@@ -107,7 +166,7 @@ rec {
           { "${name}-caller" = ''
             echo "${show-caller attrs.passthru.env-caller}"
             '';
-          } else {});
+          } else {}); */
     in out;
 
   show-caller = env-caller: if isAttrs env-caller then
@@ -142,6 +201,10 @@ rec {
       import_libs = import_libs_out;
       importLibsHook = concatMapStrings sourceLib import_libs_out;
       libs_doc = mkImportLibs name import_libs_out;
+      passthru = super.passthru // { envlib-file = writeTextFile
+                                       { name = "${name}-shellLib";
+                                         text = mkEnvLibText super;
+                                        };};
     };
 
 }

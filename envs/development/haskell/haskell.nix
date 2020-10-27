@@ -8,7 +8,8 @@ let
     let haskellPackages = getAttr name self.haskell.packages;
         selectFrom = _: [];
     in { inherit name;
-         value = self.callPackage ./ghc-env.nix { inherit name haskellPackages selectFrom;};
+         value = self.callPackage ./ghc-env.nix {
+           inherit name haskellPackages selectFrom;};
        };
 in listToAttrs (map make-haskell-version ghcVers)
    // { "ghc" = self.callPackage ./ghc-env.nix {

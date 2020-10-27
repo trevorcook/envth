@@ -236,10 +236,10 @@ this = mkEnvironmentWith env0-extensions rec {
       echo "~~~~~ source markups at ~~~~~
       file://$libs_doc/doc/html/index.html"
       '';
-    env-lib-reload = ''
+    env-reload-lib = ''
       # Reload the latest source without recompiling the whole environment
-      env-build -A envlib
-      source .envth/envlib/lib/$name
+      env-build -A envlib-file
+      source .envth/envlib-file
       '';
 
   };
