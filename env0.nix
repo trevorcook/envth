@@ -77,6 +77,11 @@ this = mkEnvironmentWith env0-extensions rec {
       else
         exec nix-shell "$@" $called
       fi'';
+    env-reload-lib = ''
+      # Reload the latest source without recompiling the whole environment
+      env-build -A envlib-file
+      source .envth/envlib-file
+      '';
     env-call = ''
       # Make a nix file that calls the input file using the ENVTH_CALLER.
       # and ENVTH_CALLATTRS
@@ -235,11 +240,6 @@ this = mkEnvironmentWith env0-extensions rec {
       done
       echo "~~~~~ source markups at ~~~~~
       file://$libs_doc/doc/html/index.html"
-      '';
-    env-reload-lib = ''
-      # Reload the latest source without recompiling the whole environment
-      env-build -A envlib-file
-      source .envth/envlib-file
       '';
 
   };

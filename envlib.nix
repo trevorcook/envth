@@ -111,63 +111,10 @@ rec {
         } else {});
   in extras;
 
-  mkEnvLibText = attrs@{envlib ? {},...}:
+  mkEnvLibText = attrs@{ envlib?{},...} :
     mkShellLibText ((mkEnvLibExtras attrs) // envlib);
-  mkEnvLib = attrs@{name, envlib ? {}, ENVTH_RESOURCES ? "", ...}:
-    let
-      /* attrs' = filterAttrs (n: v: all (x: n != x)
-                    ["envlib" "passthru" "ENVTH_DRV" "shellHook" "paths"
-                     "env-caller"])
-                    attrs.passthru.attrs-pre; */
-      out = mkShellLib name (extras // envlib);
-      extras = mkEnvLibExtras attrs;
-       /* {
-        "${name}-lib" = ''
-          local sep=" "
-          echo "${concatStringsSep "\${sep}" (attrNames (extras // envlib ))}"
-          '';
-        "${name}-vars" = ''
-          declare -A vars=${ show-attrs-as-assocArray
-                               (mapAttrs (_: toString) attrs')}
-          if [[ $# == 0 ]] || { [[ $# == 1 ]] && [[ "$1" == "--current" ]]; }; then
-            for key in "''${!vars[@]}"; do
-                echo "$key = $(eval echo \$$(echo $key))"
-            done
-          elif [[ $# == 1 ]] && [[ $1 == --original ]]; then
-            for key in "''${!vars[@]}"; do
-              echo "$key = ''${vars[$key]}"
-            done
-          elif [[ $# == 1 ]] && [[ $1 == --changed ]]; then
-            for key in "''${!vars[@]}"; do
-              curval="$(eval echo \$$(echo $key))"
-              origval="''${vars[$key]}"
-              if [[ $curval != $origval ]]; then
-                echo "$key = $curval ($origval)"
-              fi
-            done
-          fi
-          '';
-        "${name}-localize" = ''''${name}-localize-to "$(env-home-dir)" "$@"'';
-        "${name}-localize-to" = ''
-            ## For recreating original source environment relative to some directory.
-            local use="Use: env-localize-to <dir>"
-            [[ $# != 1 ]] && { echo $use ; return; }
-            local dir="$1"
-            mkdir -p $dir
-            echo "%% Making Local Resources in $dir %%%%%%%%%%%%%%%%%%%%%%%"
-            local arr
-            eval arr=( ${ENVTH_RESOURCES} )
-            for i in "''${arr[@]}"; do
-              env-cp-resource-to "$dir" $i
-            done
-            '';
-        } //
-        ( if attrs ? passthru.env-caller then
-          { "${name}-caller" = ''
-            echo "${show-caller attrs.passthru.env-caller}"
-            '';
-          } else {}); */
-    in out;
+  mkEnvLib = attrs@{ name,envlib?{},... }:
+    mkShellLib name ((mkEnvLibExtras attrs) // envlib);
 
   show-caller = env-caller: if isAttrs env-caller then
       show-vars-default env-caller

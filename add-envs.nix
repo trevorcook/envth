@@ -39,13 +39,13 @@ rec {
   add-envs = self: super:
     let
       envs-in = attrByPath ["addEnvs"] [] super;
-      envs-orig = envth.envs;
+      #envs-orig = envth.envs;
       update = fix-envth-with envs-in;
       envs-added = if envs-in == [] then {} else update.envs-added;
       envs = envth.envs // envs-added ;
     in
       { passthru =  super.passthru // {
-          inherit envs envs-added envs-orig;
+          inherit envs envs-added;# envs-orig;
         };
       };
 
