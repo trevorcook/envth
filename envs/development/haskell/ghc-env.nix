@@ -24,4 +24,15 @@ in envth.mkEnvironment rec {
     # make new ghc environment with packages added from cabal2nix definition;
     addDeps = pkg-nix: addPackages (mk-select pkg-nix);
     };
+  envlib = {
+    ghc-open-doc = ''
+      # Will print out the local haddock for a package.
+      use="Use: ghc-open-doc <package-name>"
+      [[ $# != 1 ]] && { echo $use ; return; }
+      local doc=file://$(arg-n 2 $(ghc-pkg field $1 haddock-html))/index.html
+      echo $doc
+      xdg-open $doc
+      '';
+    };
+
   }
