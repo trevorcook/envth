@@ -1,15 +1,38 @@
-{envth, name, selectFrom, haskellPackages}: #, callPackage}:
-envth.mkEnvironment rec {
+{ envth, name, selectFrom, haskellPackages, cabal2nix
+, withHoogle?true, lib }: with lib; with builtins;
+let ghc = haskellPackages.ghc.withPackages selectFrom;
+    ghc-dev = haskellPackages.ghc.withHoogle selectFrom;
+    ghc-on-path = if withHoogle then ghc-dev else ghc;
+    mk-select = pkg-nix:
+      let deps = attrNames (functionArgs (import pkg-nix));
+        pre-filter = filter (pk: pk != "stdenv");
+        post-filter = filter (x: all (y: typeOf x != y) ["null" "lambda"]);
+        pick-dep = pkgs: name: getAttr name pkgs;
+      in pkgs: post-filter (map (pick-dep pkgs) (pre-filter deps));
+in envth.mkEnvironment rec {
   inherit name;
   definition = ./ghc-env.nix;
-  passthru = {
-    inherit selectFrom haskellPackages;
-    ghc = haskellPackages.ghc.withPackages selectFrom;
-    ghc-dev = haskellPackages.ghc.withHoogle selectFrom;
+  paths = [cabal2nix ghc-on-path];
+  passthru = rec {
+    inherit selectFrom haskellPackages ghc ghc-dev;
+    #makes new ghc environment with some added packages;
     addPackages = f: let
       next-selectFrom = pkgs: (selectFrom pkgs) ++ (f pkgs);
       in import definition
-             { inherit name envth haskellPackages;
+             { inherit name envth haskellPackages withHoogle cabal2nix lib;
                 selectFrom = next-selectFrom; };
+    # make new ghc environment with packages added from cabal2nix definition;
+    addDeps = pkg-nix: addPackages (mk-select pkg-nix);
     };
+  envlib = {
+    ghc-open-doc = ''
+      # Will print out the local haddock for a package.
+      use="Use: ghc-open-doc <package-name>"
+      [[ $# != 1 ]] && { echo $use ; return; }
+      local doc=file://$(arg-n 2 $(ghc-pkg field $1 haddock-html))/index.html
+      echo $doc
+      xdg-open $doc
+      '';
+    };
+
   }

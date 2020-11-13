@@ -5,7 +5,7 @@ this = mkEnvironmentWith env0-extensions rec {
   name = "env0";
   definition = ./env0.nix;
   shellHook = ''
-    [[ $ENVTH_ENTRY == bin ]] && ENVTH_BUILDDIR=.
+    [[ "$ENVTH_ENTRY" == bin ]] && ENVTH_BUILDDIR=.
     env-set-PS1
     env-PATH-nub
     ENVTH_OUT=''${ENVTH_OUT:=$out}
@@ -49,7 +49,7 @@ this = mkEnvironmentWith env0-extensions rec {
     env-cleanup = ''
       # Cleanup environment variables. Not sure
       # if this is needed. Am sure its poorly implemented.
-      [[ -n ENVTH_NOCLEANUP ]] && return
+      [[ -n ENVTH_NOCLEANUP ]] && { return;}
       unset ENVTH_BUILDDIR ENVTH_RESOURCES ENVTH_ENTRY ENVTH_DRV \
             ENVTH_OUT ENVTH_CALLER
       #Dont remove ENVTH_TEMP, that will be reused in reload.'';
@@ -80,6 +80,11 @@ this = mkEnvironmentWith env0-extensions rec {
       else
         exec nix-shell "$@" $called
       fi'';
+    env-reload-lib = ''
+      # Reload the latest source without recompiling the whole environment
+      env-build -A envlib-file
+      source .envth/envlib-file
+      '';
     env-call = ''
       # Make a nix file that calls the input file using the ENVTH_CALLER.
       # and ENVTH_CALLATTRS
@@ -249,11 +254,6 @@ this = mkEnvironmentWith env0-extensions rec {
       done
       echo "~~~~~ source markups at ~~~~~
       file://$libs_doc/doc/html/index.html"
-      '';
-    env-lib-reload = ''
-      # Reload the latest source without recompiling the whole environment
-      env-build -A envlib
-      source .envth/envlib/lib/$name
       '';
 
   };

@@ -31,7 +31,7 @@ rec
                             merged-specials env_ attrs-out;
                     importing-name = env-attrs.name;
                     import-data = old; };
-          in recursiveUpdate attrs (setAttrByPath path new);
+          in attrs; #recursiveUpdate attrs (setAttrByPath path new);
       in attrs-out;
 
     split-import-attrs = attrs:

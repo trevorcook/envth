@@ -47,7 +47,7 @@ cat >shell.nix <<'EOF'
 let
   envth-src = builtins.fetchGit {
       url = https://github.com/trevorcook/envth.git ;
-      rev = "85ab26346d9ab6508fab61c43de24ba06f96f761"; };
+      rev = "c9c3156d1ad6b32b83f00ead24470672f19f9af8"; };
   envth-overlay = self: super: { envth = import envth-src self super; };
   nixpkgs = import <nixpkgs> { overlays = [ envth-overlay ]; };
 in {definition ? ./env-1.nix}: nixpkgs.callPackage definition {}
@@ -69,8 +69,7 @@ You should be greeted with a prompt like:
 ```
 Congratulations, you have entered your 1<sup>th</sup> `envth`. This environment
 inherits the basic envth functionality, which can be explored by using the
-command `env-lib`, for example. However, new users should probably skip to
-exploring the maximal example. Use `<ctrl-d>` or `exit` to return to your usual
+command `env-lib`, for example. Use `<ctrl-d>` or `exit` to return to your usual
 shell.
 
 ### Explanation
@@ -100,7 +99,7 @@ cat >shell.nix <<'EOF'
 let
   envth-src = builtins.fetchGit {
       url = https://github.com/trevorcook/envth.git ;
-      rev = "85ab26346d9ab6508fab61c43de24ba06f96f761"; };
+      rev = "c9c3156d1ad6b32b83f00ead24470672f19f9af8"; };
   envth-overlay = self: super: { envth = import envth-src self super; };
   nixpkgs = import <nixpkgs> { overlays = [ envth-overlay ]; };
 in {definition ? ./sample.nix}: nixpkgs.callPackage definition {}
@@ -173,7 +172,7 @@ For linux, add the following to `~/.config/nixpkgs/overlays/envth.nix`:
   let
     envth-src = builtins.fetchGit {
         url = https://github.com/trevorcook/envth.git ;
-        rev = "85ab26346d9ab6508fab61c43de24ba06f96f761"; };
+        rev = "c9c3156d1ad6b32b83f00ead24470672f19f9af8"; };
   in
   self: super: { envth = import envth-src self super; }
   ```
