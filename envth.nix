@@ -23,7 +23,7 @@ let
       inits = callPackage ./inits.nix { inherit envth; };
       add-envs = callPackage ./add-envs.nix { inherit envth; };
       imports = callPackage ./imports.nix { inherit envth;};
-      builder = callPackage ./build.nix {};
+      builder = callPackage ./build.nix { inherit envth; };
       resources = callPackage ./resources.nix {};
       envlib = callPackage ./envlib.nix { };
       make-environment = callPackage ./make-environment.nix { inherit envth; };

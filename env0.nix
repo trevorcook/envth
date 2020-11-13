@@ -60,7 +60,10 @@ this = mkEnvironmentWith env0-extensions rec {
       '';
     env-reload = ''
       # Reload env, passing inputs as commands to be run upon reentry.
-      cmds="$@" ; [[ -z $cmds ]] && cmds=return ; cmds="$cmds ; return"
+      cmds="$@" ;
+      [[ -z $cmds ]] && cmds=return ;
+      cmds="$cmds ; return"
+      #echo "env-reload commands: $cmds"
       env-reload-with-args --command "$cmds"
       '';
     env-reload-with-args = ''
@@ -109,19 +112,25 @@ this = mkEnvironmentWith env0-extensions rec {
       nix-copy-closure --to $1 $ENVTH_OUT
       '';
     env-ssh = ''
-      env-deploy "$1" && env-ssh-enter "$(env-entry-path)" "$@"
+      local host="$1"; shift
+      env-deploy "$host" && env-ssh-enter "$host" "$(env-entry-path)" "$@"
       '';
     env-ssh-enter = ''
+      local host="$1"; shift
       local enter="$1"; shift
       local ssh_cond
-      local host="$1"; shift
-      echo "#############"
+      local args="$(cmd-wrap "$@")"
+      echo "##########################"
       echo "Will connect to $host"
-      echo "With args: \"$@\""
+      [[ -n "$*" ]] && {
+        echo "Command arguments:"
+        for i in "$@"; do
+          echo " - arg: $i"
+        done ; }
       echo "~~~~~~~~~~~~~"
-      echo  ssh $NIX_SSHOPTS "$host" -t "bash -i -- $enter \"$@\""
-      echo "#############"
-      ssh $NIX_SSHOPTS "$host" -t "bash -i -- $enter \"$@\""
+      echo ssh  -t $NIX_SSHOPTS "$host" "$enter $args"
+      echo "##########################"
+      ssh -t $NIX_SSHOPTS "$host" "$enter $args"
       ssh_cond=$?
       echo "--- Returned to $(hostname) ---"
       return $ssh_cond
@@ -129,7 +138,6 @@ this = mkEnvironmentWith env0-extensions rec {
     env-su = ''
       sudo su --shell $(env-entry-path) $@
       '';
-
     env-localize = ''$name-localize "$@"'';
     env-localize-to = ''$name-localize-to "$@"'';
 
@@ -203,6 +211,12 @@ this = mkEnvironmentWith env0-extensions rec {
       esac
       PS1="\n${pcolor "\${c1}"}[$name]${pcolor "\${c2}"}\u@\h:${pcolor "\${c3}"}\W${pcolor "0"}\$ "
     '';
+
+    cmd-wrap = ''
+      # A simple utility for wrapping up commands in "ssh/eval"
+      # compatible strings. Didactic.
+      [[ -n "$@" ]] && printf '%q ' "$@"
+      '';
 
     arg-n = ''
       if [[ $# < 2 ]]; then

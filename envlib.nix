@@ -139,5 +139,4 @@ rec {
       importLibsHook = concatMapStrings sourceLib import_libs_out;
       libs_doc = mkImportLibs name import_libs_out;
     };
-
 }

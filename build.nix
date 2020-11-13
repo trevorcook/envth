@@ -1,4 +1,6 @@
-{ writeScript, stdenv, makeWrapper, bash, bashInteractive, coreutils }:
+{ envth, writeScript, stdenv, makeWrapper, bash, bashInteractive, coreutils }:
+
+
 rec {
   make-builder = self: super@{ name, ENVTH_DRV ? ""
                              , buildInputs ? [], paths ? []
@@ -19,6 +21,8 @@ rec {
           --set ENVTH_OUT $out
         makeWrapper $this_enter_env_dev $out/bin/enter-${name}-dev \
           --set ENVTH_OUT $out
+        # non-interactive is to ensure that the shell hangs up correctly
+        # (ran into problems with pdsh and entering the shell)
         makeWrapper $this_enter_env_sh $out/bin/enter-${name}-non-interactive \
           --set ENVTH_OUT $out \
           --set NONINTERACTIVE 1
@@ -28,6 +32,13 @@ rec {
         #!${bash}/bin/bash
         # enter-${name} [CommandString]
         # enter the environment, optionally running the CommandString
+
+        [[ -n $ENVTH_DEBUG ]] && {
+          echo ENVTH_DEBUG=$ENVTH_DEBUG
+          echo "##### enter-${name}: $HOSTNAME #######"
+          for arg in "$@"; do
+            echo " - arg: $arg"
+          done; }
 
         export ENVTH_ENTRY=bin
 
@@ -44,32 +55,35 @@ rec {
         source ${stdenv}/setup
         export PATH="$PATH:$TMPPATH"
 
-        # This function is for nix-shell compatability with the --command
+        # The following is for nix-shell compatability with the --command
         # option. Commands may be given as options, e.g,
         #  - for issuing commands in the environment:
         #     > enter-this-env "echo this; echo that"
         #  - for issuing commands in the environment, then staying in env:
         #     > enter-this-env "echo this; echo that; return"
         # No options is an implicit "return"
-        evalargs(){
-          local cmds="$@"
-          [[ -z $cmds ]] && cmds=return
-          eval "$cmds"
+        if [[ -z "$@" ]]; then
+          export ENVTH_COMMANDLINEHOOK=return
+        else
+          export ENVTH_COMMANDLINEHOOK="$@"
+        fi
+        eval-ENVTH_COMMANDLINEHOOK(){
+          [[ -n $ENVTH_DEBUG ]] && echo "ENVTH_COMMANDLINEHOOK=$ENVTH_COMMANDLINEHOOK"
+          eval "$ENVTH_COMMANDLINEHOOK"
           exit
         }
-        # non-interactive is to ensure that the shell hangs up correctly
-        # (ran into problems with pdsh and entering the shell)
-        export -f evalargs
-        if [[ -z $NONINTERACTIVE ]]; then
-          exec ${bashInteractive}/bin/bash --init-file <(echo "$shellHook
-        evalargs \"$@\"")
-        else
+        export -f eval-ENVTH_COMMANDLINEHOOK
+
+        if [[ -n $NONINTERACTIVE ]]; then
+          [[ -n $ENVTH_DEBUG ]] && echo NONINTERRACTIVE
           exec ${bashInteractive}/bin/bash -c "$shellHook
-          $@"
+          eval-ENVTH_COMMANDLINEHOOK"
+        else
+          [[ -n $ENVTH_DEBUG ]] && echo INTERACTIVE
+          exec ${bashInteractive}/bin/bash --init-file <(echo "$shellHook
+          eval-ENVTH_COMMANDLINEHOOK")
         fi
-
         '';
-
 
       this_enter_env_dev = writeScript "enter-${name}-dev" ''
         #!${bash}/bin/bash
