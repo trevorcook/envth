@@ -57,11 +57,12 @@ rec {
       $out/doc/html/. > $out/doc/html/index.html
     '';
 
-  mkEnvLibExtras = attrs@{name, envlib ? {}, ENVTH_RESOURCES ? "", ...}:
+  mkEnvLibExtras = attrs@{ name, envlib ? {}, ENVTH_RESOURCES ? ""
+                         , env-varsets?{}, ...}:
     let
       attrs' = filterAttrs (n: v: all (x: n != x)
                     ["envlib" "passthru" "ENVTH_DRV" "shellHook" "paths"
-                     "env-caller"])
+                     "env-caller" "env-varsets"])
                     attrs.passthru.attrs-pre;
       extras = {
       "${name}-lib" = ''
@@ -108,8 +109,30 @@ rec {
         { "${name}-caller" = ''
           echo "${show-caller attrs.passthru.env-caller}"
           '';
-        } else {});
+        } else {})
+      // ( if env-varsets != {} && env-varsets != null then
+            { "${name}-setvars" =
+                mkEnvVarSets "${name}-setvars" env-varsets;}
+           else {});
   in extras;
+
+  mkEnvVarSets = name: vs:
+    let
+      mkuse = n: v: n;
+      mkcases = n: v: ''
+      ${n})
+        ${make-vars-string setvar v}
+        ;;
+      '';
+      setvar = n: v: ''  ${n}="${toString v}"'';
+    in ''
+    if [[ $# != 1 ]]; then
+      echo "usage: ${name} {${show-attrs-with-sep mkuse "|" vs}}"
+    fi
+    case $1 in
+    ${ make-vars-string mkcases vs }
+    esac
+    '';
 
   mkEnvLibText = attrs@{ envlib?{},...} :
     mkShellLibText ((mkEnvLibExtras attrs) // envlib);
@@ -144,6 +167,7 @@ rec {
       lib_doc = mkShellLib-doc name envlib;
       sourceLib = l: "source ${l}/lib/*\n";
     in {
+      env-varsets = null;
       inherit envlib;
       import_libs = import_libs_out;
       importLibsHook = concatMapStrings sourceLib import_libs_out;

@@ -43,6 +43,13 @@ Copy and paste the following into the command line. It creates two files--
 You might want to create and move to a new directory first.
 
 ```
+cat >env-1.nix <<'EOF'
+{ envth }: with envth;
+mkEnvironment {
+ name = "env-1";
+ definition = ./env-1.nix;
+ }
+EOF
 cat >shell.nix <<'EOF'
 let
   envth-src = builtins.fetchGit {
@@ -51,13 +58,6 @@ let
   envth-overlay = self: super: { envth = import envth-src self super; };
   nixpkgs = import <nixpkgs> { overlays = [ envth-overlay ]; };
 in {definition ? ./env-1.nix}: nixpkgs.callPackage definition {}
-EOF
-cat >env-1.nix <<'EOF'
-{ envth }: with envth;
-mkEnvironment {
- name = "env-1";
- definition = ./env-1.nix;
- }
 EOF
 nix-shell
 
@@ -68,27 +68,29 @@ You should be greeted with a prompt like:
 [env-1]$USER@$HOST:dir$
 ```
 Congratulations, you have entered your 1<sup>th</sup> `envth`. This environment
-inherits the basic envth functionality, which can be explored by using the
+inherits the basic `envth` functionality, which can be explored by using the
 command `env-lib`, for example. Use `<ctrl-d>` or `exit` to return to your usual
 shell.
 
 ### Explanation
 
-In the above code, the lines between the `EOF` are a "Here document". They get
+In the above code, the lines between the `EOF` are "Here documents". They get
 piped verbatim into the standard `cat` utility, which then saves them as
 `shell.nix` and `env-1.nix`.
 
-In `shell.nix`, the `let` bindings add the `envth` attribute set to `<nixpkgs>`
-so that `callPackage` knows about it. The `in` expression uses `callPackage` to
-calls the `definition` file. An idiosyncrasy of `shell.nix` is that it is
+The environment definition is contained in `env-1.nix`. It is defined in the
+standard nix package-as-a-function idiom, with a lone dependency, `envth`,
+specified by its input arguments. The `with` expression brings `mkEnvironment`
+into scope, and `mkEnvironment` makes a shell environment named "`env-1`" and
+whose definition is the current file, `env-1.nix`.
+
+The file, `shell.nix`, is called by `nix-shell`, and uses `callPackage` to
+satisfy the dependencies defined in `env-1.nix`. In `shell.nix` the `let`
+bindings add the `envth` attribute set to `<nixpkgs>` so that `callPackage`
+knows about it. An idiosyncrasy of this `shell.nix` is that it is
 defined as a function with a default argument. This provides compatibility
 between invoking the definition with `nix-shell` from outside the environment
 and `env-reload` from inside the environment.
-
-The definition, `env-1.nix` has a lone dependency, `envth`, as specified by
-its input arguments. The `with` expression brings `mkEnvironment` into
-scope, and `mkEnvironment` makes a shell environment named "`env-1`" and whose
-definition is the current file, `env-1.nix`.
 
 ## Maximal Example
 
@@ -163,7 +165,7 @@ discussed in [other attributes](other-attributes).
 
 To provide the `envth` input to our environments we defined overlays
 in our example `shell.nix` files. Instead of providing that overlay in each
-file, however, one can be supplied in the user's nixpkgs config file. Doing so
+file, one can be supplied in the user's nixpkgs config file. Doing so
 will add the `envth` attribute to `<nixpkgs>` any time it is invoked, and
 therefore make it available with `callPackages`.
 
@@ -226,15 +228,16 @@ This section describes the attributes that can be passed to
 
 - `paths`: This attribute will add executables and libraries to the system
   paths as in `buildInputs` for `stdenv.mkDerivation` or `paths` for
-  `nixpkgs.lib.buildEnv`. To make software within the environment, therefore,
-  add the nix package to the definition file's input arguments and `path`, e.g.:
+  `nixpkgs.lib.buildEnv`. To make software available within the environment,
+  therefore, add the nix package to the definition file's input arguments
+  and `path`, e.g.:
 
   ```nix
   {envth,python3}:envth.mkEnvironment { ..., path = [python3]; ...}
   ```
 
 - `imports`: If defined, `imports` should be a list of other `mkEnvironment`
-  style derivations. E.g.:
+  style derivations, e.g.:
   ```
   imports = [ ./a-env.nix
               ((import ./b-env.nix) { an-arg= "arg-value"; })
@@ -273,9 +276,28 @@ This section describes the attributes that can be passed to
   more complicated than `with import <nixpkgs> {}; callPackage ./def.nix {}`
   is needed.
 
-- Other `mkDerivation` attributes, i.e. `shellHook`, `buildInputs`, inherit    
-  their behavior from `mkDerivation`. That is, `shellHook`, is run when the
-  environment is entered, `buildInputs` are added to the `PATH` (for one). Any
+- `env-varsets`: This attribute is used in conjunction with the environment
+  function `${name}-setvars` to set predefined variables in the environment.
+  The value should be a set of sets of string valued attributes.
+
+  An example. With a definition including:
+  ```nix
+    name = "myEnv";
+    env-varsets = { set1 = { myvar = "value1";}
+                    set2 = { myvar = "value2";}};
+  ```
+  The environment will include a function `myEnv-setvars`. Invoking
+  `myEnv-setvars set1` will result in the variable `myvar=value1`. Invoking
+  `myEnv-setvars set2` yields `myvar=value2`.
+
+
+- `shellHook`: As per the usual `shellHook` `nix-shell` functionality, this
+  string-valued attribute can be used to run commands upon shell entry. Note
+  that `envth` prepends the user supplied `shellHook` with additional commands.
+  The original `shellHook` is exported as `userShellHook`
+
+- Other `mkDerivation` attributes inherit their behavior from `mkDerivation`.
+  For instance, `buildInputs` are added to the `PATH` (for one). Any
   other attributes used by `mkDerivation` might work as well, though they are
   untested and might not make sense in the `mkEnvironment` context.
 
@@ -359,9 +381,24 @@ invoking the build product `enter-<name>`).
 # Using the environment
 
 When in the environment, just go about your normal command-line shell business.
-The variables and functions defined by the environment will be in scope. The
-default library functions can be listed with `env0-lib`. Tab completion should
-work as well, `env-<tab><tab>`.
+The variables and functions defined by the environment will be in scope, the
+packages declared in `paths` will be added to `PATH`, etc.
+
+Extra functions in addition to those declared in `envlib` are defined
+for every environment. These functions all begin with the environment name,
+and can be viewed with tab completion: `${name}-<tab><tab>`.  
+
+- `${name}-env-lib`: Lists all functions defined by this environment.
+- `${name}-env-localize`: Localizes all `mkSrc` resources based on the current
+   environment's build directory.
+- `${name}-env-localize-to`: Localizes all `mkSrc` resources based on a supplied
+   directory.
+- `${name}-env-setvars`: Set variables defined in the environment's `env-varsets`.
+- `${name}-env-vars`: Show the variables set by attributes of the environment.
+
+
+Default library functions are supplied by an included "`env0`", and can be
+listed with `env0-lib`. Tab completion should work as well, `env-<tab><tab>`.
 
 Some of the more important functions are `env-build`, which is used to build
 the environment output, and `env-reload`, which is used to update the
