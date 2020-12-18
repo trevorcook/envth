@@ -54,7 +54,7 @@ cat >shell.nix <<'EOF'
 let
   envth-src = builtins.fetchGit {
       url = https://github.com/trevorcook/envth.git ;
-      rev = "29a0fe8daa5dfc37a1e593fc524ac871f725cf57"; };
+      rev = "fd1de72b9ce0f76dc8b2fb5dfd44ca774bd4c0d5"; };
   envth-overlay = self: super: { envth = import envth-src self super; };
   nixpkgs = import <nixpkgs> { overlays = [ envth-overlay ]; };
 in {definition ? ./env-1.nix}: nixpkgs.callPackage definition {}
@@ -101,7 +101,7 @@ cat >shell.nix <<'EOF'
 let
   envth-src = builtins.fetchGit {
       url = https://github.com/trevorcook/envth.git ;
-      rev = "29a0fe8daa5dfc37a1e593fc524ac871f725cf57"; };
+      rev = "fd1de72b9ce0f76dc8b2fb5dfd44ca774bd4c0d5"; };
   envth-overlay = self: super: { envth = import envth-src self super; };
   nixpkgs = import <nixpkgs> { overlays = [ envth-overlay ]; };
 in {definition ? ./sample.nix}: nixpkgs.callPackage definition {}
@@ -174,7 +174,7 @@ For linux, add the following to `~/.config/nixpkgs/overlays/envth.nix`:
   let
     envth-src = builtins.fetchGit {
         url = https://github.com/trevorcook/envth.git ;
-        rev = "29a0fe8daa5dfc37a1e593fc524ac871f725cf57"; };
+        rev = "fd1de72b9ce0f76dc8b2fb5dfd44ca774bd4c0d5"; };
   in
   self: super: { envth = import envth-src self super; }
   ```
@@ -284,7 +284,7 @@ This section describes the attributes that can be passed to
   ```nix
     { name = "myEnv";
       env-varsets = { set1 = { myvar = "value1";};
-                      set2 = { myvar = "value2";}; }; };
+                      set2 = { myvar = "value2";}; }; }
   ```
   The environment will include a function `myEnv-setvars`. Invoking
   `myEnv-setvars set1` will result in the variable `myvar=value1`. Invoking
