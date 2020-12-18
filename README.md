@@ -134,8 +134,8 @@ it will be using the local definition.
 # Defining `envth` Environments
 
 To create an `envth` environment, we define environment files with the form
-```
-   { envth }: envth.mkEnvironment { ... };
+```nix
+   { envth }: envth.mkEnvironment { /* ... */ };
 ```
 The overall form of the environment definition is a function. The arguments to
 the function declare which `nix` derivations the environment depends upon. The
@@ -170,7 +170,7 @@ will add the `envth` attribute to `<nixpkgs>` any time it is invoked, and
 therefore make it available with `callPackages`.
 
 For linux, add the following to `~/.config/nixpkgs/overlays/envth.nix`:
-  ```
+  ```nix
   let
     envth-src = builtins.fetchGit {
         url = https://github.com/trevorcook/envth.git ;
@@ -190,18 +190,22 @@ This section describes the attributes that can be passed to
 
 ### Required Attributes
 
-- `name`: The name of the environment. For one, this attribute will be used to
-  create the environment's build output, `enter-<name>`. For another, users may
-  add environments to `envth` and reference them inside their definition, a la:
-  ```
+- `name`: The name of the environment. This attribute is required because of
+  the underlying implementation based on `mkDerivation`. It is also used
+  in various ways. For example, the environment's build output will be
+  named `enter-${name}`, and various shell functions, `${name}-`, will be
+  created. Also, users may add environments to `envth` and reference them
+  by name:
+  ```nix
   with (envth.addEnvs [ ./my-env.nix ]); mkDerivation {
-   ... envs.my-env-name ...
+   /* ... */
+   thisattr = envs.my-env-name.thatattr
   }
   ```
 - `definition`: This attribute must be a nix path that refers to the
   environment file itself.
-  ```
-  definition = ./my-env.nix;
+  ```nix
+  { definition = ./my-env.nix; }
   ```
 
 ### Other Attributes
@@ -210,12 +214,11 @@ This section describes the attributes that can be passed to
   attribute set of string-valued attributes. Each attribute name will become a
   function in the resulting shell environment, the definition of which will be
   the attribute value. For example the following definition:
-  ```
-  envlib = {
-    list-param = ''
-      echo "param 1 is $1"
-      '';
-    }
+  ```nix
+  { envlib = {
+      list-param = ''
+        echo "param 1 is $1"
+        '';}; }
   ```
   will result in the following:
   ```
@@ -228,20 +231,20 @@ This section describes the attributes that can be passed to
 
 - `paths`: This attribute will add executables and libraries to the system
   paths as in `buildInputs` for `stdenv.mkDerivation` or `paths` for
-  `nixpkgs.lib.buildEnv`. To make software available within the environment,
-  therefore, add the nix package to the definition file's input arguments
-  and `path`, e.g.:
+  `nixpkgs.lib.buildEnv`. Therefore, to make software available within the
+  environment, add the nix package to the definition file's input arguments
+  and `paths`, e.g.:
 
   ```nix
-  {envth,python3}:envth.mkEnvironment { ..., path = [python3]; ...}
+  {envth,python3}:envth.mkEnvironment { /* ... */ paths = [python3];}
   ```
 
 - `imports`: If defined, `imports` should be a list of other `mkEnvironment`
   style derivations, e.g.:
-  ```
-  imports = [ ./a-env.nix
-              ((import ./b-env.nix) { an-arg= "arg-value"; })
-            ];
+  ```nix
+  { imports = [ ./a-env.nix
+                ((import ./b-env.nix) { an-arg= "arg-value"; })
+              ]; }
   ```
   In the above, `a-env.nix` will be imported using whatever packages are in
   scope for the in scope `envth`. `b-env.nix` will be called using overloaded
@@ -282,9 +285,9 @@ This section describes the attributes that can be passed to
 
   An example. With a definition including:
   ```nix
-    name = "myEnv";
-    env-varsets = { set1 = { myvar = "value1";}
-                    set2 = { myvar = "value2";}};
+    { name = "myEnv";
+      env-varsets = { set1 = { myvar = "value1";}
+                      set2 = { myvar = "value2";}} };
   ```
   The environment will include a function `myEnv-setvars`. Invoking
   `myEnv-setvars set1` will result in the variable `myvar=value1`. Invoking
@@ -304,8 +307,8 @@ This section describes the attributes that can be passed to
 - User defined attributes: Per the behavior of `mkDerivation` attribute sets,
   additional attributes will be exported to the resulting environment. For
   example, defining
-  ```
-  NIX_SSHOPTS="-o ProxyJump=me@jumphost";
+  ```nix
+  { NIX_SSHOPTS="-o ProxyJump=me@jumphost"; }
   ```
   will create the environment variable `NIX_SSHOPTS` (incidentally, this is
   passed to the underlying `scp/ssh` during `env-ssh`. This option, in
@@ -343,7 +346,7 @@ would add `./env-a.nix` to the set of environments, allowing it to be used in
 the subsequent definition.
 ```nix
   {envth}: with envth.addEnvs [ ./env-a.nix ]; mkEnvironment {
-    # [various definitions ]
+    # ...
     env_a_definition = envs.env-a.definition;
   }
 ```
@@ -360,8 +363,8 @@ both `env-a` and `env-b` to the resulting `envs`.
 copied from the nix store to the local filesystem. This utility is used within
 a `mkEnvironment` derivation in expressions such as the following attribute
 defintion:
-```
-  xFile = envth.mkSrc ./xFile.md;
+```nix
+  { xFile = envth.mkSrc ./xFile.md; }
 ```
 `mkSrc` expects a single path as an input. Files will be copied individually,
 directories will be copied whole.
@@ -417,8 +420,8 @@ add the executable `enter-<name>` to the current user's PATH.
 The default library function `env-localize` provides a means of copying
 environment resources from the nix store. More precisely, it will copy the
 definition file and any file attribute in the environment that has been tagged with `mkSrc`, as in
-```
-  xFile = envth.mkSrc ./xFile.md;
+```nix
+  { xFile = envth.mkSrc ./xFile.md; }
 ```
 The copy will be placed relative to the `ENVTH_BUILDDIR`, which is the directory
 of the `definition` file (in the case of entering the environment through
