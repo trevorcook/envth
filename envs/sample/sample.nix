@@ -143,4 +143,16 @@ mkEnvironment rec {
   # nix-repl> passthru.envs.env-b.<tab>
   # etc.
 
+  # env-varsets: use the command
+  # > sample-setvars varset-new
+  # to set the environment variables to "new ..." values.
+  # use:
+  # > sample-setvars varset-revert
+  # to set those variables to the values found in the original environments.
+  env-varsets = {
+    varset-new = { varA = "new varA set in sample.nix";
+                   varB = "new varB set in sample.nix"; };
+    varset-revert = { varA = envs.env-a.varA;
+                      varB = envs.env-b.varB; }; };
+
 }

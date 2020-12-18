@@ -157,7 +157,7 @@ this = mkEnvironmentWith env0-extensions rec {
     env-cp-resource = ''env-cp-resource-to "$(env-home-dir)" "$@"'';
     env-cp-resource-to = ''
       local use="Use: env-cp-resource-to <dir> /nix/store/location /relative/loc"
-      [[ $# != 3 ]] && { echo $use ; return; }
+      [[ $# != 3 ]] && { echo $use; return; }
       local dir="$1"
        if [[ -d $2 ]] ; then
         for i in $(find $2 -type f -printf "%P\n"); do
