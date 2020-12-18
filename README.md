@@ -135,7 +135,7 @@ it will be using the local definition.
 
 To create an `envth` environment, we define environment files with the form
 ```nix
-   { envth }: envth.mkEnvironment { /* ... */ };
+   { envth }: envth.mkEnvironment { /* ... */ }
 ```
 The overall form of the environment definition is a function. The arguments to
 the function declare which `nix` derivations the environment depends upon. The
@@ -199,7 +199,7 @@ This section describes the attributes that can be passed to
   ```nix
   with (envth.addEnvs [ ./my-env.nix ]); mkDerivation {
    /* ... */
-   thisattr = envs.my-env-name.thatattr
+   thisattr = envs.my-env-name.thatattr;
   }
   ```
 - `definition`: This attribute must be a nix path that refers to the
@@ -215,10 +215,7 @@ This section describes the attributes that can be passed to
   function in the resulting shell environment, the definition of which will be
   the attribute value. For example the following definition:
   ```nix
-  { envlib = {
-      list-param = ''
-        echo "param 1 is $1"
-        '';}; }
+  { envlib = { list-param = ''echo "param 1 is $1"''; }; }
   ```
   will result in the following:
   ```
@@ -286,8 +283,8 @@ This section describes the attributes that can be passed to
   An example. With a definition including:
   ```nix
     { name = "myEnv";
-      env-varsets = { set1 = { myvar = "value1";}
-                      set2 = { myvar = "value2";}} };
+      env-varsets = { set1 = { myvar = "value1";};
+                      set2 = { myvar = "value2";}; } };
   ```
   The environment will include a function `myEnv-setvars`. Invoking
   `myEnv-setvars set1` will result in the variable `myvar=value1`. Invoking

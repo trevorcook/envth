@@ -8,10 +8,6 @@ mkEnvironment rec {
   name = "sample";
   # Must refer to itself.
   definition = ./sample.nix;
-  # I also sometimes split the defintion a la:
-  # definition  = ./shell.nix;
-  # definition_ = mkSrc ./sample.nix
-  # With shell.nix containing `callPackage ./sample.nix {}`
 
   # OPTIONAL ##########################
 
