@@ -124,7 +124,23 @@ this = mkEnvironmentWith env0-extensions rec {
       local host="$1"; shift
       local enter="$1"; shift
       local ssh_cond
-      local args="$(cmd-wrap "$@")"
+      # format declare statements with global switch
+      local exps="$( for x in $ENVTH_SSH_EXPORTS; do
+          echo "declare -xg $x=\"$(eval echo \$"$x")\"";
+        done)"
+      # Previous, non-exporting, version:
+      # local args="$(cmd-wrap "$@")"
+      local args
+      if [[ -z "$@" ]] && [[ -n $ENVTH_SSH_EXPORTS ]]; then
+        args="$(cmd-wrap "$exps
+                      return")"
+      elif [[ -n $ENVTH_SSH_EXPORTS ]]; then
+        args="$(cmd-wrap "$exps
+                      $@")"
+      else
+        args="$(cmd-wrap "$@")"
+      fi
+
       echo "##########################"
       echo "Will connect to $host"
       [[ -n "$*" ]] && {
@@ -140,6 +156,26 @@ this = mkEnvironmentWith env0-extensions rec {
       echo "--- Returned to $(hostname) ---"
       return $ssh_cond
       '';
+    /* env-ssh-enter = ''
+      local host="$1"; shift
+      local enter="$1"; shift
+      local ssh_cond
+      local args="$(cmd-wrap "$@")"
+      echo "##########################"
+      echo "Will connect to $host"
+      [[ -n "$*" ]] && {
+        echo "Command arguments:"
+        for i in "$@"; do
+          echo " - arg: $i"
+        done ; }
+      echo "~~~~~~~~~~~~~"
+      echo ssh  -t $NIX_SSHOPTS "$host" "$enter $args"
+      echo "##########################"
+      ssh -t $NIX_SSHOPTS "$host" "$enter $args"
+      ssh_cond=$?
+      echo "--- Returned to $(hostname) ---"
+      return $ssh_cond
+      ''; */
     env-su = ''
       sudo su --shell $(env-entry-path) $@
       '';
