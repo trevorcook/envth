@@ -102,7 +102,7 @@ rec {
           mkdir -p $dir
           echo "%% Making Local Resources in $dir %%%%%%%%%%%%%%%%%%%%%%%"
           local arr
-          eval arr=( ${ENVTH_RESOURCES} )
+          arr=( ${ENVTH_RESOURCES} )
           for i in "''${arr[@]}"; do
             env-cp-resource-to "$dir" $i
           done
@@ -130,7 +130,7 @@ rec {
       setvar = n: v: ''  ${n}="${toString v}"'';
     in ''
     if [[ $# != 1 ]]; then
-      echo "usage: ${name} {${show-attrs-with-sep mkuse "|" vs}}"
+      echo "use: ${name} {${show-attrs-with-sep mkuse "|" vs}}"
     fi
     case $1 in
     ${ make-vars-string mkcases vs }

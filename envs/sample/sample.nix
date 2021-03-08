@@ -8,10 +8,6 @@ mkEnvironment rec {
   name = "sample";
   # Must refer to itself.
   definition = ./sample.nix;
-  # I also sometimes split the defintion a la:
-  # definition  = ./shell.nix;
-  # definition_ = mkSrc ./sample.nix
-  # With shell.nix containing `callPackage ./sample.nix {}`
 
   # OPTIONAL ##########################
 
@@ -142,5 +138,17 @@ mkEnvironment rec {
   # { env-a = <<derivation.... }
   # nix-repl> passthru.envs.env-b.<tab>
   # etc.
+
+  # env-varsets: use the command
+  # > sample-setvars varset-new
+  # to set the environment variables to "new ..." values.
+  # use:
+  # > sample-setvars varset-revert
+  # to set those variables to the values found in the original environments.
+  env-varsets = {
+    varset-new = { varA = "new varA set in sample.nix";
+                   varB = "new varB set in sample.nix"; };
+    varset-revert = { varA = envs.env-a.varA;
+                      varB = envs.env-b.varB; }; };
 
 }
