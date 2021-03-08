@@ -15,10 +15,10 @@ let
         mapAttrs mkEnv envsdir; */
 
   envth0 = mkenvth {};
-  mkenvth =  makeOverridable ({envs ? envs-dir, metafun?metafun_ }:
+  mkenvth =  makeOverridable (ovr@{envs ? envs-dir, metafun?metafun_ }:
     # callPackage will use the original `envth`. To pick up the overridden
     # definition, an updated `envth` must be supplied--hence the following.
-    let envth = envth0.override {inherit envs;}; in
+    let envth = envth0.override ovr; in
     rec {
     # This is all the utilities going into making it work.
     lib = rec {
