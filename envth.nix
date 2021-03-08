@@ -4,7 +4,7 @@ let
   callPackage = self.callPackage;
   metafun-src = builtins.fetchGit {
       url = https://github.com/trevorcook/nix-metafun.git ;
-      rev = "09d554ac7a7d9574e3bdddc93e6c2e89993428a1"; };
+      rev = "12eb50a1e83b2aa8c4f53f0696241e22a70570db"; };
   metafun_ = callPackage (metafun-src + /metafun.nix) {};
 
   envs-dir = import ./envs/default.nix self super;
@@ -41,7 +41,7 @@ let
       };
 
     # These are the exported utilities.
-    inherit envs;
+    inherit envs metafun;
     addEnvs = lib.add-envs.addEnvs;
     mkSrc = lib.resources.mkSrc;
     mkEnvironment = lib.make-environment.mkEnvironment;
