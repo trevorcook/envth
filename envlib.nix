@@ -1,21 +1,25 @@
-{lib,  writeTextFile, symlinkJoin, pandoc, runCommand, tree }:
+{lib,  writeTextFile, symlinkJoin, pandoc, runCommand, tree, metafun }:
 with builtins;
 with lib;
 let # unique list, keeping last instances in list.
   uniquer = ls: reverseList (unique (reverseList ls)); in
 rec {
   mkShellFunctions = attrs :
-    let fs = mapAttrsToList mkShellFunction attrs;
-    in concatStrings (mapAttrsToList mkShellFunction attrs);
-  mkShellFunction = name: value: ''
-    ${name}(){
-    ${value}
-    }
-
-    '';
-  mkShellFunctionExports = attrs:
-    show-attrs-with-sep (n: _: ''export -f ${n}
-    '') "" attrs;
+    concatStrings (mapAttrsToList mkShellFunction attrs);
+  mkShellFunction = with metafun; name: value: ''
+      ${name}(){
+      ${mkCommand name value}
+      }
+      export -f ${name}
+      ${ if isAttrs value then ''
+      _${name}-complete(){
+      ${mkCommandCompletion name value}
+      }
+      export -f _${name}-complete
+      complete -F _${name}-complete ${name}
+      ''
+      else ""}
+      '';
 
   mkShellLibDoc = name: lib-file: runCommand "${name}.html" {} ''
     ${pandoc}/bin/pandoc -f markdown -s --metadata pagetitle=${name} \
@@ -25,11 +29,10 @@ rec {
       -o $out
     '';
 
-  mkShellLibText = lib: (mkShellFunctions lib) + (mkShellFunctionExports lib);
   mkShellLib = name: lib:
     let lib-file = writeTextFile
           { name = "${name}-shellLib";
-            text = mkShellLibText lib;
+            text = mkShellFunctions lib;
           };
     in runCommand name {} ''
     # Make the Shell Function File
@@ -135,7 +138,7 @@ rec {
     '';
 
   mkEnvLibText = attrs@{ envlib?{},...} :
-    mkShellLibText ((mkEnvLibExtras attrs) // envlib);
+    mkShellFunctions ((mkEnvLibExtras attrs) // envlib);
   mkEnvLib = attrs@{ name,envlib?{},... }:
     mkShellLib name ((mkEnvLibExtras attrs) // envlib);
 

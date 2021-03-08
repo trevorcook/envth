@@ -2,6 +2,10 @@ self: super:
 with builtins; with self.lib;
 let
   callPackage = self.callPackage;
+  metafun-src = builtins.fetchGit {
+      url = https://github.com/trevorcook/nix-metafun.git ;
+      rev = "09d554ac7a7d9574e3bdddc93e6c2e89993428a1"; };
+  metafun_ = callPackage (metafun-src + /metafun.nix) {};
 
   envs-dir = import ./envs/default.nix self super;
   /* envs-dir =  let
@@ -11,7 +15,7 @@ let
         mapAttrs mkEnv envsdir; */
 
   envth0 = mkenvth {};
-  mkenvth =  makeOverridable ({envs ? envs-dir }:
+  mkenvth =  makeOverridable ({envs ? envs-dir, metafun?metafun_ }:
     # callPackage will use the original `envth`. To pick up the overridden
     # definition, an updated `envth` must be supplied--hence the following.
     let envth = envth0.override {inherit envs;}; in
@@ -25,7 +29,7 @@ let
       imports = callPackage ./imports.nix { inherit envth;};
       builder = callPackage ./build.nix { inherit envth; };
       resources = callPackage ./resources.nix {};
-      envlib = callPackage ./envlib.nix { };
+      envlib = callPackage ./envlib.nix { inherit metafun; };
       make-environment = callPackage ./make-environment.nix { inherit envth; };
       caller = callPackage ./caller.nix { };
       # Basic utilities used in some modules.

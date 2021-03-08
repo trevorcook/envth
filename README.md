@@ -207,7 +207,7 @@ This section describes the attributes that can be passed to
 ### Other Attributes
 
 - `envlib`: The special attribute `envlib`, if defined, should be a nix
-  attribute set of string-valued attributes. Each attribute name will become a
+  attribute set of string-valued* attributes. Each attribute name will become a
   function in the resulting shell environment, the definition of which will be
   the attribute value. For example the following definition:
   ```
@@ -225,6 +225,9 @@ This section describes the attributes that can be passed to
     echo "param 1 is $1"
   }
   ```
+  * While the above is essentially true, the attributes can also be
+    attribute sets compatible with the [metafun](https://github.com/trevorcook/nix-metafun.git) project. If supplied, metafun generated
+    tab completion will also be exported for the attribute/function.
 
 - `paths`: This attribute will add executables and libraries to the system
   paths as in `buildInputs` for `stdenv.mkDerivation` or `paths` for
