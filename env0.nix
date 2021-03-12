@@ -250,7 +250,7 @@ this = mkEnvironmentWith env0-extensions rec {
         c3="0;36"
         ;;
       esac
-      PS1="\n${pcolor "\${c1}"}[$name]${pcolor "\${c2}"}\u@\h:${pcolor "\${c3}"}\W${pcolor "0"}\$ "
+      PS1="\n${pcolor "\${c1}"}[$name]${pcolor "\${c2}"}$USER@\h:${pcolor "\${c3}"}\W${pcolor "0"}\$ "
     '';
 
     cmd-wrap = ''
