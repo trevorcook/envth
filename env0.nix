@@ -5,7 +5,7 @@ this = mkEnvironmentWith env0-extensions rec {
   name = "env0";
   definition = ./env0.nix;
   shellHook = ''
-    [[ "$ENVTH_ENTRY" == bin ]] && ENVTH_BUILDDIR=.
+    [[ "$ENVTH_ENTRY" == bin ]] && ENVTH_BUILDDIR=$PWD
     env-set-PS1
     env-PATH-nub
     ENVTH_OUT=''${ENVTH_OUT:=$out}
@@ -107,7 +107,7 @@ this = mkEnvironmentWith env0-extensions rec {
     env-reload-here = ''
       # Re-enter the environment in current directory using the
       # file pointed to by `definition`.
-      ENVTH_BUILDDIR="."
+      ENVTH_BUILDDIR="$PWD"
       unset ENVTH_ENTRY
       env-reload "$@"'';
     env-deploy = ''
