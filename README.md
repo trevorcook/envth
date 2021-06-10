@@ -272,8 +272,10 @@ This section describes the attributes that can be passed to
   To supply an alternative reloader, assign `env-caller` to the filepath of
   a nix file of the form `{definition}:callPackage definition {}`. The location
   of the caller file will be held in the runtime environment variable
-  `ENVTH_CALLER`. Alternatively, the string "none", may be supplied, in which
-  case the expression `{definition}: definition {}` will be used as the caller.
+  `ENVTH_CALLER`. Alternative forms of `env-caller` include the string "none"--
+  in which case the expression `{definition}: definition {}` will be used as
+  the caller--or a set including the attribute `definition` and attributes
+  for inputs to the definition.
 
   In particular, `env-caller`, should be supplied in cases where a nix file
   more complicated than `with import <nixpkgs> {}; callPackage ./def.nix {}`
