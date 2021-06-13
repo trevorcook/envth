@@ -111,13 +111,13 @@ mkEnvironment rec {
     extra-envs/env-c.nix  # path to env file will be loaded using callPackage
     ];
 
-  # addEnvs: Export extra environments.
+  # env-addEnvs: Export extra environments.
   # Using `envth.addEnvs`, as seen at the top of this file, will bring
   # additional environments into scope so that they can be referenced
-  # within the nix definition file. Declaring an `addEnvs` attribute, such as
+  # within the nix definition file. Declaring an `env-addEnvs` attribute, such as
   # below, puts extra environmnets in scope whenever the calling environment is
   # in scope.
-  # For example, both `env-a` and `env-c` declare `addEnvs`--for env-b and
+  # For example, both `env-a` and `env-c` declare `env-addEnvs`--for env-b and
   # env-c, respectively. `env-a` is brought into scope at the top of this file
   # and so its exported environments--`env-b` in this case--may be referenced.
   # see?
@@ -128,7 +128,7 @@ mkEnvironment rec {
   # In a similar vein to the above explanation, the following attribute
   # would put both `env-a` and `env-b` in scope whenever envs.sample is put in
   # scope.
-  # addEnvs = [ envs.env-a ];
+  # env-addEnvs = [ envs.env-a ];
   # All environments inherit an `env` attribute (passthru.env, actually),
   # listing all in scope envs. All in-scope environments can be inspected
   # with nix read-eval-print-loop utility. E.g.

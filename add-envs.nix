@@ -38,13 +38,17 @@ rec {
   # imported environments.
   add-envs = self: super:
     let
-      envs-in = attrByPath ["addEnvs"] [] super;
+      #ADDENVS rename
+      /* envs-in = attrByPath ["addEnvs"] [] super; */
+      envs-in = attrByPath ["env-addEnvs"] [] super;
+      ####
       #envs-orig = envth.envs;
       update = fix-envth-with envs-in;
       envs-added = if envs-in == [] then {} else update.envs-added;
       envs = envth.envs // envs-added ;
     in
-      { passthru =  super.passthru // {
+      { env-addEnvs=null;
+        passthru =  super.passthru // {
           inherit envs envs-added;# envs-orig;
         };
       };

@@ -73,7 +73,10 @@ rec
             in attrs // setAttrByPath [name] new-value;
         in {
           paths = catlist "paths";
-          addEnvs = keeplist;
+          #ADDENVS rename
+          /* addEnvs = keeplist; */
+          env-addEnvs = keeplist;
+          ###
           name = keepstring;
           definition = keepstring;
           envlib = keepattr;

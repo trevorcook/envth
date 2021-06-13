@@ -9,7 +9,7 @@ mkEnvironment
   pyenv = pyenv.python;
   varA = "varA set in env-a";
   imports = [ envs.env-b ];
-  addEnvs = [ envs.python38 # export modified python env, so that when
+  env-addEnvs = [ envs.python38 # export modified python env, so that when
                             # an environment imports env-a, "toolz" will be
                             # added to the python package.
               envs.env-b    # Likewise, bring env-b, into scope.

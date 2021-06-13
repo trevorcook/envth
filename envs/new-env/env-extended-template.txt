@@ -4,9 +4,9 @@ mkEnvironment rec
   definition = ./@ENVNAME@.nix;
   # env-caller = mkSrc ./shell.nix;
   shellHook = '''';
-  buildInputs = [] ;
+  paths = [] ;
   imports = with envs; [];
-  addEnvs = [];
+  env-addEnvs = [];
   envlib = {};
   passthru = {};
 }

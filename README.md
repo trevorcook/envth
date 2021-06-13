@@ -259,9 +259,9 @@ This section describes the attributes that can be passed to
   > Note: An environment's `shellHook` will not be run when it is imported.
   The hook can be retrieved with, e.g., `otherHook = envs.other.userShellHook`.
 
-- `addEnvs`: This attribute expects a list of environments that will be brought
+- `env-addEnvs`: This attribute expects a list of environments that will be brought
    into scope whenever the current environment is in scope. No environment
-   variables are created with `addEnvs`, however "`passthru`" variables `envs`
+   variables are created with `env-addEnvs`, however "`passthru`" variables `envs`
    and `envs-added` can be inspected from within the `nix repl`. See also the
    section on [other `envth` attributes](other-envth-attributes).
 
@@ -352,11 +352,11 @@ the subsequent definition.
     env_a_definition = envs.env-a.definition;
   }
 ```
-Note that `mkEnvironmnet` can be passed an `addEnv` attribute ([Other Attributes](other-attributes)), which is different than, but works in conjunction
-with `envth.addEnv`. That attribute brings additional environments into scope
+Note that `mkEnvironmnet` can be passed an `env-addEnvs` attribute ([Other Attributes](other-attributes)), which is different than, but works in conjunction
+with `envth.addEnvs`. That attribute brings additional environments into scope
 whenever the calling environment is brought into scope. For example, in the
 sample environment, there is an `env-a.nix` which declares
-`addEnvs = [./env-b.nix]`. In that case, `envth.addEnv [./env-a.nix]` would add
+`env-addEnvs = [./env-b.nix]`. In that case, `envth.addEnv [./env-a.nix]` would add
 both `env-a` and `env-b` to the resulting `envs`.
 
 ## `mkSrc`
