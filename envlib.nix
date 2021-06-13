@@ -68,6 +68,9 @@ rec {
                      "env-caller" "env-varsets"])
                     attrs.passthru.attrs-pre;
       extras = {
+      "${name}-env" = import ./env-metafun.nix
+        {fname = "${name}-env"; inherit lib;}
+        attrs;
       "${name}-lib" = ''
         local sep=" "
         echo "${concatStringsSep "\${sep}" (attrNames (extras // envlib ))}"

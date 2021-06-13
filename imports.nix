@@ -18,7 +18,7 @@ rec
         env-attrs = restrict-passthru-attrs env.passthru.attrs-post;
         restrict-passthru-attrs = env: env //
           { passthru = filterAttrs
-              (n: v: all (k: k != n) ["envs" "envs-added" "envs-orig"] )
+              (n: v: all (k: k != n) ["envs" "envs-added" "envs-orig" "attrs-pre"] )
               env.passthru; };
         split-env = split-import-attrs env-attrs;
         merged-specials = merge-special-attrs attrs split-env.specials;
