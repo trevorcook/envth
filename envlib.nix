@@ -1,4 +1,4 @@
-{lib,  writeTextFile, symlinkJoin, pandoc, runCommand, tree, metafun }:
+{envth, lib,  writeTextFile, symlinkJoin, pandoc, runCommand, tree, metafun }:
 with builtins;
 with lib;
 let # unique list, keeping last instances in list.
@@ -69,7 +69,7 @@ rec {
                     attrs.passthru.attrs-pre;
       extras = {
       "${name}-env" = import ./env-metafun.nix
-        {fname = "${name}-env"; inherit lib;}
+        {fname = "${name}-env"; inherit lib extras envth;}
         attrs;
       "${name}-lib" = ''
         local sep=" "

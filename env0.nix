@@ -23,11 +23,35 @@ this = mkEnvironmentWith env0-extensions rec {
       ENVTH_OUT = "";
       ENVTH_CALLER = "";
       ENVTH_NOCLEANUP = "";
-      ENVTH_TEMP = ""; };
+      ENVTH_TEMP = "";
+      ENVTH_SSH_EXPORTS = "";
     };
-  envlib = {
+  };
+  envlib = (import ./env0-legacy-lib.nix) // {
 
-    env-build = ''
+    envth = {
+      desc = "envth utilities.";
+      commands = {
+        cmd-export-env = {
+          desc = ''Prepare a command for export to other hosts by prepending
+                 "declare" statements from ENVTH_SSH_EXPORTS'';
+          hook =  ''
+            declare -a args=()
+            for i in $ENVTH_SSH_EXPORTS ENVTH_SSH_EXPORTS; do
+              args+=( "$(declare -p $i)
+            " )
+            done
+            if [[ -z "$@" ]]; then
+              args+=( return )
+            else
+              args+=( "$@" )
+            fi
+            echo "''${args[@]}"
+            '';
+          };
+      };
+    };
+    /* env-build = ''
       # Build the output. (A script that enters an interactive
       # session with the current environment variables.)
       if [[ $ENVTH_ENTRY != bin ]]; then
@@ -156,26 +180,6 @@ this = mkEnvironmentWith env0-extensions rec {
       echo "--- Returned to $(hostname) ---"
       return $ssh_cond
       '';
-    /* env-ssh-enter = ''
-      local host="$1"; shift
-      local enter="$1"; shift
-      local ssh_cond
-      local args="$(cmd-wrap "$@")"
-      echo "##########################"
-      echo "Will connect to $host"
-      [[ -n "$*" ]] && {
-        echo "Command arguments:"
-        for i in "$@"; do
-          echo " - arg: $i"
-        done ; }
-      echo "~~~~~~~~~~~~~"
-      echo ssh  -t $NIX_SSHOPTS "$host" "$enter $args"
-      echo "##########################"
-      ssh -t $NIX_SSHOPTS "$host" "$enter $args"
-      ssh_cond=$?
-      echo "--- Returned to $(hostname) ---"
-      return $ssh_cond
-      ''; */
     env-su = ''
       sudo su --shell $(env-entry-path) $@
       '';
@@ -252,6 +256,27 @@ this = mkEnvironmentWith env0-extensions rec {
       esac
       PS1="\n${pcolor "\${c1}"}[$name]${pcolor "\${c2}"}$USER@\h:${pcolor "\${c3}"}\W${pcolor "0"}\$ "
     '';
+    env-lib = ''
+      local file name
+      # Show all libs in order of their import and give pointer to their
+      # markups.
+      for l in $import_libs; do
+        for i in $(ls $l/doc/html); do
+          [[ $i != index.html ]] && file=$i
+        done
+        name="''${file%.*}"
+        cat <<EOF
+      $name ~~~~~~~~~~~~~~~~~~~~~~~~~
+      $($name-lib)
+      ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+      EOF
+      done
+      echo "~~~~~ source markups at ~~~~~
+      file://$libs_doc/doc/html/index.html"
+      '';
+
+     */
 
     cmd-wrap = ''
       # A simple utility for wrapping up commands in "ssh/eval"
@@ -271,25 +296,6 @@ this = mkEnvironmentWith env0-extensions rec {
       fi
       for i in $(seq $n); do shift; done
       echo $1
-      '';
-    env-lib = ''
-      local file name
-      # Show all libs in order of their import and give pointer to their
-      # markups.
-      for l in $import_libs; do
-        for i in $(ls $l/doc/html); do
-          [[ $i != index.html ]] && file=$i
-        done
-        name="''${file%.*}"
-        cat <<EOF
-      $name ~~~~~~~~~~~~~~~~~~~~~~~~~
-      $($name-lib)
-      ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-
-      EOF
-      done
-      echo "~~~~~ source markups at ~~~~~
-      file://$libs_doc/doc/html/index.html"
       '';
 
   };

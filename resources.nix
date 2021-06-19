@@ -33,12 +33,15 @@ rec {
         mg1 (drop 1 r) ([".."] ++ acc) p;
     in mg0 ref' path' ;
 
+  filter-resources = filterAttrs (_: v: isEnvSrc v);
+
   gather-resources = self: attrs@{ENVTH_BUILDDIR, definition,...}:
     let attrs' = attrs // { definition = def-resource; };
         def-resource = mkSrc definition;
     in
       { ENVTH_RESOURCES =
         { resources = filterAttrs (_: v: isEnvSrc v) attrs';
+
           __toString = x:
               concatStringsSep " "
               (map (s: ''"${s.store} ${mkLocalTo ENVTH_BUILDDIR s.local}"'')
