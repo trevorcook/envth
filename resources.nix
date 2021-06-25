@@ -7,6 +7,7 @@ rec {
       store = pth;
       local = toString pth;
     };
+  showLocalSrc = rsrc: rsrc // { __toString = x: x.local; };
   isEnvSrc = attrs: (attrs ? type) && (attrs.type == "env-resource");
 
   mkLocalTo = ref: path:
@@ -34,12 +35,34 @@ rec {
     in mg0 ref' path' ;
 
   filter-resources = filterAttrs (_: v: isEnvSrc v);
+  no-resources = { resources = {}; __toString = _: ""; };
+
+  get-localized-resources =  attrs@{ENVTH_BUILDDIR, definition,...}:
+    let rsrcs = filterAttrs (_: isEnvSrc) attrs
+             // { definition = mkSrc attrs.definition; };
+        relativeSrc = rsrc: rsrc
+                   // { local = mkLocalTo ENVTH_BUILDDIR rsrc.local; };
+    in mapAttrs (_: relativeSrc) rsrcs;
+
 
   gather-resources = self: attrs@{ENVTH_BUILDDIR, definition,...}:
     let attrs' = attrs // { definition = def-resource; };
         def-resource = mkSrc definition;
+        resources = get-localized-resources attrs;
+        /* resources = get-localized-resources self; */
     in
-      { ENVTH_RESOURCES =
+      resources // {
+        definition = showLocalSrc resources.definition;
+        ENVTH_RESOURCES = {
+          inherit resources;
+          __toString = x:
+              concatStringsSep " "
+              (mapAttrsToList (n: v:  ''"${v.store} ${v.local}"'')
+              x.resources);
+        };
+      };
+
+      /* { ENVTH_RESOURCES =
         { resources = filterAttrs (_: v: isEnvSrc v) attrs';
 
           __toString = x:
@@ -49,6 +72,6 @@ rec {
         };
         definition = mkLocalTo ENVTH_BUILDDIR def-resource.local;
         definition_NIXSTORE = def-resource.store;
-      };
+      }; */
 
 }

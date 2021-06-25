@@ -1,23 +1,32 @@
 {fname,lib,extras,envth}:
-attrs_@{name,env-varsets?{},envlib,ENVTH_RESOURCES ? "",...}:
-with builtins; with lib;
+with builtins; with lib; with envth.lib.resources;
+
+attrs_@{name,env-varsets?{},envlib?{},ENVTH_RESOURCES?no-resources
+       ,imports?[], ...}:
 let
+  array-arg =  [{name="array";desc="The name of an associative array";}];
   setsarg = {name="varset";type=attrNames varsets;};
   varsets = if isAttrs env-varsets then env-varsets else {};
   show-attrs-with-sep = f : sep: attrs:
     concatStringsSep sep (mapAttrsToList f attrs);
   mkCase = f: n: vals: ''
     ${n})
-      ${show-attrs-with-sep f "\n" vals }
+      ${ f n vals }
       ;;
     '';
-  sets-case = f:
+  sets-case = f: s:
     ''case $1 in
-      ${ show-attrs-with-sep (mkCase f) "" varsets }
+      ${ show-attrs-with-sep (mkCase f) "" s }
       esac
       '';
   attrs-pre = filterAttrs isNotEnvthVar attrs_.passthru.attrs-pre;
-  attrs-resources = envth.lib.resources.filter-resources attrs_;
+  envs-imported = attrByPath ["passthru" "envs-imported"] [] attrs_;
+  attrs-resources = filterAttrs (_: isEnvSrc) attrs_;
+  attrs-resources-twopaths =
+    /* let esc = p: escape [" "] (toString p); in */
+    let esc = x: x; in
+    mapAttrs (n: v: "${esc v.store} ${esc v.local}") attrs-resources;
+  /* attrs-resources = ENVTH_RESOURCES.resources; */
   isNotEnvthVar = n: v: ! (isEnvthVar n v);
   isEnvthVar = n: v: hasPrefix "ENVTH" n || hasPrefix "env-" n ||
       (any (n': n == n') ["envlib" "passthru" "shellHook" "paths"]) ;
@@ -32,14 +41,14 @@ let
      "\${namesonly:+--names-only}"
      ];
   opt-def = {
-    current.desc="Current values";
+    current.desc="Current values of keys as environment variables.";
     current.hook="declare current=true";
     changed.desc="The current values of changed variables.";
     changed.hook="declare changed=true";
     names-only.desc="Only print the names of variables set.";
     names-only.hook="declare namesonly=true";
-    array.desc = "Show the varset as the values of an associative array";
-    array.hook = ''declare array=true'';
+    array.desc="Set the supplied array";
+    array.hook = _: "declare arrayname=$1";
     to.desc = "copy to directory";
     to.hook = _:''declare copyto="$1"'';
   };
@@ -47,29 +56,31 @@ in
 
 
 {
-  desc = "Query and Control some aspects of an environment";
+  desc = "Query and Control some aspects of the environment.";
 
-  commands.resources = {
+  commands.resource = {
     desc = "Show resources associated with environment.";
-    /* opts = {
-
-    }; */
+    opts = with opt-def; { inherit current changed array; };
     hook = ''
-        declare -A vars=${ show-attrs-as-assocArray attrs-resources }
-        echo "$vars"
-        declare -p vars
-        #echo ${fname} array-vars vars
-        #${fname} array-vars ${pass-flags} vars
+      arrayname=''${arrayname:=rsrcs}
+      if [[ -n $arrayname ]]; then
+        eval $arrayname='${ show-attrs-as-assocArray attrs-resources-twopaths }'
+      else
+        declare -A vars=${ show-attrs-as-assocArray attrs-resources-twopaths }
+        envth array-vars show ${pass-flags} vars
+      fi
         '';
-
-  };
-
-  commands.lib = {
-    desc = "Show functions exported by this environment.";
-    hook = ''
-      declare sep=" "
-      echo "${concatStringsSep "\${sep}" (attrNames (extras // envlib ))}"
-      '';
+    /* commands.list = {
+      desc = "";
+      hook = ":";};
+    commands.status = {
+      desc = "";
+      hook = ":";
+    };
+    commands.cmd = {
+      desc = "";
+      hook = ":";
+    }; */
   };
 
   commands.localize = {
@@ -100,11 +111,15 @@ in
   commands.varsets = {
     desc = "Manipulate environment variable sets defined in env-varsets";
     commands.set = {
+      desc = "set";
       args = if varsets!={} then [setsarg] else [];
-      hook = sets-case (n: v:
-               if isNull v then
-                 "unset ${n}"
-               else "declare -xg ${n}=${toString v}");
+      hook = let
+        do-set = n: v:
+          if isNull v then
+            "unset ${n}"
+          else "declare -xg ${n}=${toString v}";
+      in
+        sets-case (_: show-attrs-with-sep do-set "\n") varsets;
       };
     commands.list = {
       desc = "Show available varsets.";
@@ -112,15 +127,13 @@ in
     };
     commands.show = {
       desc = "Show the value assignments of a varset.";
-      opts = with opt-def; {inherit current changed array names-only;};
+      opts = with opt-def; {inherit current changed names-only;};
       args = if varsets!={} then [setsarg] else [];
       hook = ''
-        if [[ -n $array ]]; then
-          ${sets-case (n: v: ''echo -n ' [${n}]="${toString v}" ' '' )}
-        else
-          eval declare -A vars=( $( ${fname} varsets show --array $1 ) )
-          ${fname} array-vars ${pass-flags} vars
-        fi
+        ${sets-case
+           ( n: s : ''declare -A vars=${ show-attrs-as-assocArray s }'')
+           varsets }
+        envth array-vars show ${pass-flags} vars
         '';
     };
   };
@@ -128,40 +141,27 @@ in
 
   commands.vars = {
     desc = "Show environment variables set by mkEnvironment definition.";
-    opts = with opt-def; {inherit current changed array names-only;};
+    opts = with opt-def; {inherit current changed names-only;};
     hook = ''
         declare -A vars=${ show-attrs-as-assocArray attrs-pre }
-        ${fname} array-vars ${pass-flags} vars
+        envth array-vars show ${pass-flags} vars
         '';
   };
 
-
-  commands.array-vars = {
-    desc = "Show environment variables reflected by an array. This
-           is a utility used in `vars` and `varsets`";
-    opts = with opt-def; {inherit current changed array names-only;};
-    args = [{name="array";desc="The name of an associative array";}];
+  commands.lib = {
+    desc = "Show functions exported by this environment.";
     hook = ''
-        declare temp=$(declare -pn $1)
-        declare val
-        declare -A vars
-        eval "''${temp/$1=/vars=}"
-        for key in "''${!vars[@]}"; do
-          if [[ -n $current ]] ; then
-            eval val=$(echo \$$(echo $key))
-            echo "$key=$val"
-          elif [[ -n $changed ]]; then
-            eval val=$(echo \$$(echo $key))
-            [[ $val != ''${vars[$key]} ]] && echo "$key=$val"
-          elif [[ -n $namesonly ]]; then
-            echo "$key"
-          else
-            val=''${vars[$key]}
-            echo "[$key]=$val"
-          fi
-        done
-        '';
+      declare sep=" "
+      echo "${concatStringsSep "\${sep}" (attrNames (extras // envlib ))}"
+      '';
   };
+  commands.imports = {
+    desc = "Show environments imported by this environment.";
+    hook = ''
+      echo "${concatStringsSep " " (map (i: i.name) envs-imported)}"
+      '';
+  };
+
 
 
 }

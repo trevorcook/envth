@@ -31,7 +31,7 @@ rec
                        make-builder
                        make-envlib
                        (save-attrs-as "attrs-post")
-                      ];
+                    ];
 
   process-attrs = foldl composeExtensions (_: super: super);
 

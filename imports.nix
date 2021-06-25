@@ -8,22 +8,29 @@ rec
   {
     # Add imports overlay
     add-imports = self: {imports ? [],...}@attrs:
-      let merged-attrs = foldr merge-import-env attrs ([env0] ++ imports);
-      in merged-attrs;
+      let
+        merged-attrs = foldr merge-import-env attrs ([env0] ++ imports);
+        merged-imports = [env0] ++ attrByPath ["imports"] [] merged-attrs;
+      in merged-attrs // {
+          passthru = merged-attrs.passthru
+                  // { envs-imported = map (callEnv envth) merged-imports; };};
 
     # Merge an imported env into the current attribute set.
     merge-import-env = env_: attrs:
       let
         env = callEnv envth env_;
         env-attrs = restrict-passthru-attrs env.passthru.attrs-post;
-        restrict-passthru-attrs = env: env //
-          { passthru = filterAttrs
-              (n: v: all (k: k != n) ["envs" "envs-added" "envs-orig" "attrs-pre"] )
-              env.passthru; };
+        restrict-passthru-attrs = env: env // {
+          passthru = filterAttrs
+            (n: v: all (k: k != n) ["envs" "envs-added" "envs-orig"
+                                    "envs-imported" "attrs-pre"] )
+            env.passthru;
+          };
         split-env = split-import-attrs env-attrs;
         merged-specials = merge-special-attrs attrs split-env.specials;
-        attrs-out = wDbg (split-env.non-specials // merged-specials) ;
-        wDbg = attrs:
+        attrs-out = split-env.non-specials // merged-specials ;
+        /* attrs-out = wDbg (split-env.non-specials // merged-specials) ; */
+        /* wDbg = attrs:
           let
             path = ["passthru" "import-data" ];
             old = attrByPath path null attrs;
@@ -31,7 +38,7 @@ rec
                             merged-specials env_ attrs-out;
                     importing-name = env-attrs.name;
                     import-data = old; };
-          in attrs; #recursiveUpdate attrs (setAttrByPath path new);
+          in attrs; #recursiveUpdate attrs (setAttrByPath path new); */
       in attrs-out;
 
     split-import-attrs = attrs:
