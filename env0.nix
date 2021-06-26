@@ -38,8 +38,8 @@ this = mkEnvironmentWith env0-extensions rec {
   definition = ./env0.nix;
   shellHook = ''
     [[ "$ENVTH_ENTRY" == bin ]] && ENVTH_BUILDDIR=$PWD
-    env-set-PS1
-    env-PATH-nub
+    envth set-PS1
+    envth PATH-nub
     ENVTH_OUT=''${ENVTH_OUT:=$out}
     export ENVTH_TEMP=''${ENVTH_TEMP:=$(mktemp -d "''${TMPDIR:-/tmp}/ENVTH_$name.XXX")}
     trap 'rm -r $ENVTH_TEMP' EXIT
@@ -93,7 +93,7 @@ this = mkEnvironmentWith env0-extensions rec {
           };
           hook = ''
             if [[ $ENVTH_ENTRY != bin ]]; then
-              mkdir -p $(env-home-dir)/.envth
+              mkdir -p $(envth home-dir)/.envth
               # Make the expression for a callPackage to the current definition.
               local called=$(envth caller)
               # Check if building an attribute, outlink becomes attribute name.
@@ -233,7 +233,7 @@ this = mkEnvironmentWith env0-extensions rec {
             # Set destination directory and expand directories to
             # multiple copies.
             else
-              declare copyto=''${copyto:=$(env-home-dir)}
+              declare copyto=''${copyto:=$(envth home-dir)}
               declare flags="''${dryrun:+--dryrun}"
               if [[ -d $1 ]] ; then
                 for i in $(find $`` -type f -printf "%P\n"); do
@@ -326,61 +326,51 @@ this = mkEnvironmentWith env0-extensions rec {
                    NIX_SSHOPTS.'';
           args = ["to"];
           hook = ''
-            env-build
+            envth build
             nix-copy-closure --to $1 $ENVTH_OUT
             '';
         };
         ssh = {
           desc = ''SSH to the current environment on a foreign host.
-                   Allows ssh command string following <to>.'';
+                   Allows ssh command string following <to>.
+                   Use in conjunction with NIX_SSHOPTS to supply extra
+                   ssh options.
+                   Use with ENVTH_SSH_EXPORTS to export selected enviornment
+                   variables to foreign host.'';
           opts = {
             no-deploy.desc = "Do not (re)copy environment to host.";
             no-deploy.hook = "declare nodeploy=true";
+            env-path.desc = ''Use the supplied path instead of the
+              current envth entry-path'';
+            env-path.hook = _:"declare enter=$1";
           };
           args = [ "to" ];
           hook = ''
             declare host="$1"; shift
-            { [[ $nodeploy == true ]] || env deploy "$host" ; } && \
-            env-ssh-enter "$host" "$(env-entry-path)" "$@"
+            { [[ $nodeploy == true ]] || envth deploy "$host" ; } && \
+            {
+              declare enter=''${enter:=$(envth entry-path)};
+              declare ssh_cond
+              declare cmd="$(envth export-cmd "$@")"
+
+              echo "##########################"
+              echo "Will connect to $host"
+              [[ -n "$*" ]] && {
+                echo "Command arguments:"
+                for i in "$@"; do
+                  echo " - arg: $i"
+                done ; }
+              echo "~~~~~~~~~~~~~"
+              echo ssh  -t $NIX_SSHOPTS "$host" "$enter $cmd"
+              echo "##########################"
+              ssh -t $NIX_SSHOPTS "$host" "$enter $cmd"
+              ssh_cond=$?
+              echo "--- Returned to $(hostname) ---"
+              return $ssh_cond
+            }
             '';
         };
-        env-ssh-enter = ''
-          local host="$1"; shift
-          local enter="$1"; shift
-          local ssh_cond
-          # format declare statements with global switch
-          local exps="$( for x in $ENVTH_SSH_EXPORTS; do
-              echo "declare -xg $x=\"$(eval echo \$"$x")\"";
-            done)"
-          # Previous, non-exporting, version:
-          # local args="$(cmd-wrap "$@")"
-          local args
-          if [[ -z "$@" ]] && [[ -n $ENVTH_SSH_EXPORTS ]]; then
-            args="$(cmd-wrap "$exps
-                          return")"
-          elif [[ -n $ENVTH_SSH_EXPORTS ]]; then
-            args="$(cmd-wrap "$exps
-                          $@")"
-          else
-            args="$(cmd-wrap "$@")"
-          fi
-
-          echo "##########################"
-          echo "Will connect to $host"
-          [[ -n "$*" ]] && {
-            echo "Command arguments:"
-            for i in "$@"; do
-              echo " - arg: $i"
-            done ; }
-          echo "~~~~~~~~~~~~~"
-          echo ssh  -t $NIX_SSHOPTS "$host" "$enter $args"
-          echo "##########################"
-          ssh -t $NIX_SSHOPTS "$host" "$enter $args"
-          ssh_cond=$?
-          echo "--- Returned to $(hostname) ---"
-          return $ssh_cond
-          '';
-        cmd-export-env = {
+        export-cmd = {
           desc = ''Prepare a command for export to other hosts by prepending
                  "declare" statements from ENVTH_SSH_EXPORTS'';
           hook =  ''
@@ -398,78 +388,49 @@ this = mkEnvironmentWith env0-extensions rec {
             '';
           };
 
-    /*
-    env-su = ''
-      sudo su --shell $(env-entry-path) $@
-      '';
-    env-localize = ''$name-localize "$@"'';
-    env-localize-to = ''$name-localize-to "$@"'';
+        PATH-nub = {
+          desc = ''Remove duplicate from PATH.'';
+          hook = ''
+            PATH=$(echo -n $PATH | awk -v RS=: '!($0 in a) {a[$0]; printf("%s%s", length(a) > 1 ? ":" : "", $0)}')
+            '';
+        };
+        PATH-stores = {
+          desc = "Show the portion of PATH from /nix/store.";
+          hook = ''
+          echo $PATH | tr ":" "\n" | grep /nix/store | tr "\n" " "
+          '';
+        };
 
-    env-cp-resource = ''env-cp-resource-to "$(env-home-dir)" "$@"'';
-    env-cp-resource-to = ''
-      local use="Use: env-cp-resource-to <dir> /nix/store/location /relative/loc"
-      [[ $# != 3 ]] && { echo $use; return; }
-      local dir="$1"
-       if [[ -d $2 ]] ; then
-        for i in $(find $2 -type f -printf "%P\n"); do
-          env-cp-file $2/$i $dir/$3/$i
-        done
-      elif [[ -e $2 ]] ; then
-        env-cp-file "$2" "$dir/$3"
-      fi
-      '';
-    env-cp-file = ''
-      mkdir -p $(dirname $2)
-      if [[ -e $2 ]] && [[ $(arg-n 1 $(md5sum $1)) == $(arg-n 1 $(md5sum $2)) ]]; then
-        echo "No Create : $2"
-      else
-        echo "Creating  : $2"
-        cp --backup=numbered "$1" "$2"
-        chmod +w $2
-      fi
-      '';
-
-    #Remove duplicates from path
-    env-PATH-nub = ''
-      PATH=$(echo -n $PATH | awk -v RS=: '!($0 in a) {a[$0]; printf("%s%s", length(a) > 1 ? ":" : "", $0)}')
-      '';
-    env-PATH-stores = ''
-      echo $PATH | tr ":" "\n" | grep /nix/store | tr "\n" " "
-      '';
-
-    ## OTHER UTILITIES
-    env-set-PS1 = let
-      pcolor = c: ''\[\033[${c}m\]'';
-      in ''
-      local c1 c2 c3 cx
-      cx=0
-      case $# in
-      1)
-        c1="$1"
-        c2="$1"
-        c3="$1"
-        ;;
-      2)
-        c1="$1"
-        c2="$2"
-        c3="$2"
-        ;;
-      3)
-        c1="$1"
-        c2="$2"
-        c3="$3"
-        ;;
-      *)
-        c1="0;35"
-        c2="1;34"
-        c3="0;36"
-        ;;
-      esac
-      PS1="\n${pcolor "\${c1}"}[$name]${pcolor "\${c2}"}$USER@\h:${pcolor "\${c3}"}\W${pcolor "0"}\$ "
-    '';
-
-     */
-
+        set-PS1 = {
+          desc = "Set the enviornment prompt.";
+          hook = let pcolor = c: ''\[\033[${c}m\]''; in ''
+            local c1 c2 c3 cx
+            cx=0
+            case $# in
+            1)
+              c1="$1"
+              c2="$1"
+              c3="$1"
+              ;;
+            2)
+              c1="$1"
+              c2="$2"
+              c3="$2"
+              ;;
+            3)
+              c1="$1"
+              c2="$2"
+              c3="$3"
+              ;;
+            *)
+              c1="0;35"
+              c2="1;34"
+              c3="0;36"
+              ;;
+            esac
+            PS1="\n${pcolor "\${c1}"}[$name]${pcolor "\${c2}"}$USER@\h:${pcolor "\${c3}"}\W${pcolor "0"}\$ "
+          '';
+        };
 
         lib = {
           desc = ''Show all libs in order of their import.'';
