@@ -4,7 +4,7 @@ mkEnvironment rec {
   # REQUIRED ARGS ####################
 
   # Used to determine output name:
-  #    $out/bin/enter-${name}
+  #    $out/bin/enter-env-$name
   name = "sample";
   # Must refer to itself.
   definition = ./sample.nix;

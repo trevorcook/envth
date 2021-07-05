@@ -150,9 +150,17 @@ in
 
   commands.lib = {
     desc = "Show functions exported by this environment.";
+    opts = {
+      file.desc = "Show the file associated with the envlib.";
+      file.hook = "declare file=true";
+    };
     hook = ''
-      declare sep=" "
-      echo "${concatStringsSep "\${sep}" (attrNames (extras // envlib ))}"
+      if [[ -n $file ]]; then
+        echo "file://envlib"
+      else
+        declare sep=" "
+        echo "${concatStringsSep "\${sep}" (attrNames (extras // envlib ))}"
+      fi
       '';
   };
   commands.imports = {

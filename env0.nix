@@ -108,6 +108,15 @@ this = mkEnvironmentWith env0-extensions rec {
             fi'';
         };
 
+        install = {
+          desc = "Install current environment via nix-env.";
+          hook = ''
+            if [[ $ENVTH_ENTRY != bin ]]; then
+              nix-env -if $(envth caller)
+            fi
+            '';
+        };
+
         home-dir = {
           desc = "Show the base directory for current environment.";
           hook = ''
@@ -130,11 +139,11 @@ this = mkEnvironmentWith env0-extensions rec {
           };
 
         entry-path = {
-          desc = ''Echo the enter-$name location, of current enviornment,
+          desc = ''Echo the enter-env-$name location, of current enviornment,
                    building if necessary.'';
           hook = ''
             [[ -e $ENVTH_OUT ]] || envth build &> /dev/null
-            echo -n "$ENVTH_OUT/bin/enter-$name"
+            echo -n "$ENVTH_OUT/bin/enter-env-$name"
             '';
           };
         reload = {
@@ -173,6 +182,7 @@ this = mkEnvironmentWith env0-extensions rec {
                 exec $(envth entry-path) $args
               else
                 envth cleanup
+                echo eval exec nix-shell $args $(envth caller)
                 eval exec nix-shell $args $(envth caller)
               fi
             fi
@@ -268,6 +278,7 @@ this = mkEnvironmentWith env0-extensions rec {
             get-arr = name: ''
               declare temp=$(declare -pn $1)
               declare -A ${name}
+              echo eval "''${temp/$1=/${name}=}"
               eval "''${temp/$1=/${name}=}"
               '';
           in {

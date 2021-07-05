@@ -2,7 +2,7 @@
 
 
 rec {
-  make-builder = self: super@{ name, ENVTH_DRV ? ""
+  make-builder = self: super@{ name#, ENVTH_DRV ? ""
                              , buildInputs ? [], paths ? []
                              , ... }:
     { builder = writeScript "${name}-builder" ''
@@ -17,25 +17,25 @@ rec {
 
         # Create output programs.
         mkdir -p $out/bin
-        makeWrapper $this_enter_env_sh $out/bin/enter-${name} \
+        makeWrapper $this_enter_env_sh $out/bin/enter-env-${name} \
           --set ENVTH_OUT $out
-        makeWrapper $this_enter_env_dev $out/bin/enter-${name}-dev \
-          --set ENVTH_OUT $out
+        # makeWrapper $this_enter_env_dev $out/bin/enter-env-${name}-dev \
+        #  --set ENVTH_OUT $out
         # non-interactive is to ensure that the shell hangs up correctly
         # (ran into problems with pdsh and entering the shell)
-        makeWrapper $this_enter_env_sh $out/bin/enter-${name}-non-interactive \
+        makeWrapper $this_enter_env_sh $out/bin/enter-env-${name}-non-interactive \
           --set ENVTH_OUT $out \
           --set NONINTERACTIVE 1
         '';
 
-      this_enter_env_sh = writeScript "enter-${name}" ''
+      this_enter_env_sh = writeScript "enter-env-${name}" ''
         #!${bash}/bin/bash
-        # enter-${name} [CommandString]
+        # enter-env-${name} [CommandString]
         # enter the environment, optionally running the CommandString
 
         [[ -n $ENVTH_DEBUG ]] && {
           echo ENVTH_DEBUG=$ENVTH_DEBUG
-          echo "##### enter-${name}: $HOSTNAME #######"
+          echo "##### enter-env-${name}: $HOSTNAME #######"
           for arg in "$@"; do
             echo " - arg: $arg"
           done; }
@@ -85,12 +85,22 @@ rec {
         fi
         '';
 
-      this_enter_env_dev = writeScript "enter-${name}-dev" ''
+      /* This "dev" entry method opens a nix shell based on
+        The output derivation. However, that derivation *seemed*
+        to require my two-phase build approach in make-environment.
+        This wasn't a great solution because all environments had to be
+        built twice, one and then again with the original .drv passed
+        to the final. The other problem is that the "dev" environment
+        here was the initial environment, whereas the original
+        source environment was the final copy. For these reasons,
+        don't use. Maybe useful in future if I can condence into
+        a single phase.
+        this_enter_env_dev = writeScript "enter-env-${name}-dev" ''
         #!${bash}/bin/bash
         export ENVTH_ENTRY=bin
         export ENVTH_OUT
         nix-shell ${ENVTH_DRV} "$@"
-        '';
+        ''; */
 
       buildInputs = [makeWrapper bash] ++ paths ++ buildInputs;
       };
@@ -103,7 +113,7 @@ rec {
           declare -px > $2
           '';
 
-  add-drv-path = drv: self: _: { ENVTH_DRV = drv.drvPath;
+  add-drv-path = drv: self: _: { ENVTH_DRV_ = drv.drvPath;
                                  /* ENVTH_OUTPATH = self.outPath;  */
                                };
 

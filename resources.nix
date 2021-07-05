@@ -48,7 +48,7 @@ rec {
   gather-resources = self: attrs@{ENVTH_BUILDDIR, definition,...}:
     let attrs' = attrs // { definition = def-resource; };
         def-resource = mkSrc definition;
-        resources = get-localized-resources attrs;
+        resources = get-localized-resources attrs';
         /* resources = get-localized-resources self; */
     in
       resources // {
