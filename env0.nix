@@ -113,10 +113,11 @@ this = mkEnvironmentWith env0-extensions rec {
           hook = ''
             if [[ $ENVTH_ENTRY != bin ]]; then
               nix-env -if $(envth caller)
+            else
+              nix-env -i $ENVTH_OUT
             fi
             '';
         };
-
         home-dir = {
           desc = "Show the base directory for current environment.";
           hook = ''
@@ -182,7 +183,6 @@ this = mkEnvironmentWith env0-extensions rec {
                 exec $(envth entry-path) $args
               else
                 envth cleanup
-                echo eval exec nix-shell $args $(envth caller)
                 eval exec nix-shell $args $(envth caller)
               fi
             fi
@@ -256,29 +256,11 @@ this = mkEnvironmentWith env0-extensions rec {
             '';
           };
 
-        /* copy-store-file = {
-          desc = ''Copy a file from /nix/store, backing up destination if
-                   a different file is detected at target. Add write mode.'';
-          args = ["store-file" "dest"];
-          hook = ''
-            mkdir -p $(dirname $2)
-            if [[ -e $2 ]] && [[ $(arg-n 1 $(md5sum $1)) == $(arg-n 1 $(md5sum $2)) ]]; then
-              echo "No Create : $2"
-            else
-              echo "Creating  : $2"
-              cp --backup=numbered "$1" "$2"
-              chmod +w $2
-            fi
-            '';
-          }; */
-
-
         array-vars =
           let
             get-arr = name: ''
               declare temp=$(declare -pn $1)
               declare -A ${name}
-              echo eval "''${temp/$1=/${name}=}"
               eval "''${temp/$1=/${name}=}"
               '';
           in {
@@ -399,6 +381,18 @@ this = mkEnvironmentWith env0-extensions rec {
             '';
           };
 
+        su = {
+          desc = "Switch user, inherit environment.";
+          hook = ''
+            sudo su --shell $(envth entry-path) $@
+            '';
+        };
+        sudo = {
+          desc = "sudo, keeping environmnet variables (just uses sudo -E)";
+          hook = ''
+            sudo -E "$@"
+            '';
+        };
         PATH-nub = {
           desc = ''Remove duplicate from PATH.'';
           hook = ''
