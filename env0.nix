@@ -22,8 +22,8 @@ let
     dryrun.hook = "declare dryrun=true;";
     env.desc = "Use named environment instead of current one.";
     env.hook = _: "declare envname=$1";
-    file.desc = _:"Use file";
-    file.hook = "declare fileinput=$1";
+    file.desc = "Use file";
+    file.hook = _: "declare fileinput=$1";
   };
   array-arg =  [{name="array";desc="The name of an associative array";}];
   pass-flags = concatStringsSep " "
@@ -37,11 +37,19 @@ this = mkEnvironmentWith env0-extensions rec {
   name = "env0";
   definition = ./env0.nix;
   shellHook = ''
-    [[ "$ENVTH_ENTRY" == bin ]] && ENVTH_BUILDDIR=$PWD
+    if [[ $out != $ENVTH_OUT ]]; then
+      # If binary, ENVTH_OUT will match out.
+      # If shell, will not match or be unset.
+      ENVTH_ENTRY=nix-shell
+      ENVTH_OUT=$out
+      # envth build >> /dev/null &
+    else
+      ENVTH_BUILDDIR=$PWD
+    fi
     envth set-PS1
     envth PATH-nub
-    ENVTH_OUT=''${ENVTH_OUT:=$out}
-    export ENVTH_TEMP=''${ENVTH_TEMP:=$(mktemp -d "''${TMPDIR:-/tmp}/ENVTH_$name.XXX")}
+    #export ENVTH_TEMP=''${ENVTH_TEMP:=$(mktemp -d "''${TMPDIR:-/tmp}/ENVTH_$name.XXX")}
+    ENVTH_TEMP="$(mktemp -d "''${TMPDIR:-/tmp}/ENVTH_$name.XXX")"
     trap 'rm -r $ENVTH_TEMP' EXIT
     '';
   /* ENVTH_ENV0 = this; */
@@ -105,6 +113,7 @@ this = mkEnvironmentWith env0-extensions rec {
                 &> "$ENVTH_BUILDDIR/.envth/build.log"
               [[ $result ==  result ]] && \
                 ENVTH_OUT="$( readlink $ENVTH_BUILDDIR/.envth/$result )"
+                out=$ENVTH_OUT
             fi'';
         };
 
@@ -170,7 +179,8 @@ this = mkEnvironmentWith env0-extensions rec {
               cmds="$@"
               [[ -z $cmds ]] && cmds=return ;
               cmds="$cmds ; return"
-              envth reload $flags --args "--command \"$cmds\""
+              [[ $ENVTH_ENTRY == bin ]] || cmds="--command \"$cmds\""
+              envth reload $flags --args "$cmds"
             else
               if [[ $libonly == true ]]; then
                 envth build -A envlib-file
@@ -179,8 +189,9 @@ this = mkEnvironmentWith env0-extensions rec {
                 envth build
               fi
               if [[ $ENVTH_ENTRY == bin ]]; then
+                declare pth=$(envth entry-path)
                 envth cleanup
-                exec $(envth entry-path) $args
+                exec $pth $args
               else
                 envth cleanup
                 eval exec nix-shell $args $(envth caller)
@@ -276,7 +287,7 @@ this = mkEnvironmentWith env0-extensions rec {
                 else "declare -xg ${n}=${toString v}";
             in
               ''
-              echo "array-vars pass-flags=${pass-flags}"
+              # echo "array-vars pass-flags=${pass-flags}"
               declare val
               ${get-arr "vars"}
               for key in "''${!vars[@]}"; do
@@ -293,7 +304,7 @@ this = mkEnvironmentWith env0-extensions rec {
           opts = with opt-def; {inherit current changed names-only;};
           args = array-arg;
           hook = ''
-              echo "array-vars pass-flags=${pass-flags}"
+              # echo "array-vars pass-flags=${pass-flags}"
               declare val
               ${get-arr "vars"}
               for key in "''${!vars[@]}"; do
