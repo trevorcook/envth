@@ -5,17 +5,12 @@ let
   metafun-src = builtins.fetchGit {
       url = https://github.com/trevorcook/nix-metafun.git ;
       rev = "9901a95a1d995481ffa4d5f101eafc2cbdba7eef"; };
-  metafun_ = callPackage (metafun-src + /metafun.nix) {};
-
+  /* metafun_ = callPackage (metafun-src + /metafun.nix) {}; */
+  metafun_ = self.metafun;
   envs-dir = import ./envs/default.nix self super;
-  /* envs-dir =  let
-        envsdir = filterAttrs (n: v: n != "README.md") (readDir ./envs);
-        mkEnv = n: _: callPackage (./envs + "/${n}") {};
-      in
-        mapAttrs mkEnv envsdir; */
 
   envth0 = mkenvth {};
-  mkenvth =  makeOverridable (ovr@{envs ? envs-dir, metafun?metafun_ }:
+  mkenvth =  makeOverridable (ovr@{envs ? envs-dir , metafun?metafun_ }:
     # callPackage will use the original `envth`. To pick up the overridden
     # definition, an updated `envth` must be supplied--hence the following.
     let envth = envth0.override ovr; in

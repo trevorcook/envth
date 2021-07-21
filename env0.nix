@@ -451,10 +451,10 @@ this = mkEnvironmentWith env0-extensions rec {
         lib = {
           desc = ''Show all libs in order of their import.'';
           hook = ''
-            for n in $(''${name}-env imports) $name; do
+            for n in $(env-''${name} imports) $name; do
             cat <<EOF
             $n ~~~~~~~~~~~~~~~~~~~~~~~~~
-            $($n-env lib)
+            $(env-$n lib)
             ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
             EOF
