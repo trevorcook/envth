@@ -4,26 +4,31 @@ let
   # TODO: This duplicates env-metafun and shoudl be consolidated
   opt-def = {
     current.desc="Current values of keys as environment variables.";
-    current.hook="declare current=true";
+    current.set="current";
     changed.desc="The current values of changed variables.";
-    changed.hook="declare changed=true";
+    changed.set="changed";
     names-only.desc="Only print the names of variables set.";
-    names-only.hook="declare namesonly=true";
+    names-only.set="namesonly";
     /* array.desc = "Show the varset as the values of an associative array";
     array.hook = ''declare array=true''; */
     to.desc = "copy to directory";
-    to.hook = _:''declare copyto="$1"'';
+    to.arg = true;
+    to.set = "copyto";
+    /* to.hook = _:''declare copyto="$1"''; */
     resource.desc = "A resource";
-    resource.hook = _: ''declare resource="$1"'';
+    resource.set = "resource";
+    resource.arg = true;
     explicit.desc = ''Copy exact location only, no expansion of directories
                   or setting of base directory with --to.'';
     explicit.hook = "declare explicit=true";
     dryrun.desc = "Only say what would be done.";
-    dryrun.hook = "declare dryrun=true;";
+    dryrun.set = "dryrun";
     env.desc = "Use named environment instead of current one.";
-    env.hook = _: "declare envname=$1";
+    env.set = "envname";
+    env.arg = true;
     file.desc = "Use file";
-    file.hook = _: "declare fileinput=$1";
+    file.set = "fileinput";
+    file.arg = true;
   };
   array-arg =  [{name="array";desc="The name of an associative array";}];
   pass-flags = concatStringsSep " "
@@ -97,7 +102,8 @@ this = mkEnvironmentWith env0-extensions rec {
           opts = rec {
             A = attrs;
             attrs.desc = "Build an attribute within the definition.";
-            attrs.hook = _: "declare attropt=$1";
+            attrs.set = "attropt";
+            attrs.arg = true;
           };
           hook = ''
             if [[ $ENVTH_ENTRY != bin ]]; then
@@ -163,10 +169,11 @@ this = mkEnvironmentWith env0-extensions rec {
                    current shell if binary based.'';
           opts = {
             args.desc = ''Pass arguments to nix-shell based reloads.'';
-            args.hook = _: ''declare args="$1"'';
+            args.set = "args";
+            args.arg = true;
             lib.desc = ''Reload the latest source without recompiling
                          the whole environment.'';
-            lib.hook = ''declare libonly=true;'';
+            lib.set = "libonly";
             here.desc = ''Re-enter the environment in current directory
                           using the file pointed to by `definition`.'';
             here.hook = ''unset ENVTH_ENTRY
@@ -218,7 +225,7 @@ this = mkEnvironmentWith env0-extensions rec {
             declare flags="''${dryrun:+--dryrun}"
 
             declare -A rsrcs
-            ''${envname}-env resource --array=rsrcs
+            env-''${envname} resource --array=rsrcs
             if [[ $# == 0 ]]; then
               for resource in ''${!rsrcs[@]}; do
                 envth copy-store $flags ''${rsrcs[$resource]}

@@ -42,15 +42,17 @@ let
      ];
   opt-def = {
     current.desc="Current values of keys as environment variables.";
-    current.hook="declare current=true";
+    current.set="current";
     changed.desc="The current values of changed variables.";
-    changed.hook="declare changed=true";
+    changed.set="changed";
     names-only.desc="Only print the names of variables set.";
-    names-only.hook="declare namesonly=true";
+    names-only.set="namesonly";
     array.desc="Set the supplied array";
-    array.hook = _: "declare arrayname=$1";
-    to.desc = "copy to directory";
-    to.hook = _:''declare copyto="$1"'';
+    array.arg = true;
+    array.set = "arrayname";
+    to.desc = "Copy to directory";
+    to.set = "copyto";
+    to.arg = true;
   };
 in
 
@@ -62,7 +64,6 @@ in
     desc = "Show resources associated with environment.";
     opts = with opt-def; { inherit current changed array; };
     hook = ''
-      arrayname=''${arrayname:=rsrcs}
       if [[ -n $arrayname ]]; then
         eval $arrayname='${ show-attrs-as-assocArray attrs-resources-twopaths }'
       else
@@ -70,19 +71,7 @@ in
         envth array-vars show ${pass-flags} vars
       fi
         '';
-    /* commands.list = {
-      desc = "";
-      hook = ":";};
-    commands.status = {
-      desc = "";
-      hook = ":";
-    };
-    commands.cmd = {
-      desc = "";
-      hook = ":";
-    }; */
   };
-
   commands.localize = {
     desc = ''For recreating original source environment relative to a
              directory.'';
@@ -111,7 +100,7 @@ in
   commands.varsets = {
     desc = "Manipulate environment variable sets defined in env-varsets";
     commands.set = {
-      desc = "set";
+      desc = "Set the varset keys to environment variables.";
       args = if varsets!={} then [setsarg] else [];
       hook = let
         do-set = n: v:
@@ -150,17 +139,9 @@ in
 
   commands.lib = {
     desc = "Show functions exported by this environment.";
-    opts = {
-      /* file.desc = "Show the file associated with the envlib.";
-      file.hook = "declare file=true"; */
-    };
     hook = ''
-      #if [[ -n $file ]]; then
-      #  echo "file://envlib"
-      #else
-        declare sep=" "
-        echo "${concatStringsSep "\${sep}" (attrNames (extras // envlib ))}"
-      #fi
+      declare sep=" "
+      echo "${concatStringsSep "\${sep}" (attrNames (extras // envlib ))}"
       '';
   };
   commands.imports = {
