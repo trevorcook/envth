@@ -1,20 +1,13 @@
 # `envth`: For Writing Your n<sup>th</sup> Environment
 
-This repository provides `mkEnvironment`, a [nix](https://nixos.org/) utility
-for working with `nix-shell` environments.
+This repository provides `mkEnvironment`, a [nix](https://nixos.org/) utility for working with `nix-shell` environments.
 
 ## Features
 
 - Modular environments: Capture common tasks as libraries of shell
   functions. Import other `envth` environments to inherit their
-  libraries and variables.
-- Environment Migration: `envth` environments provide a build output that
-  reproduces the `nix-shell` environment of the nix definition. The output
-  can be installed with `nix-env` and entered with `enter-<name>`. The standard
-  `envth` shell library, `env0-lib`, provides a function, `env-ssh`, that
-  allows users to `ssh` into the current environment on a foreign host. Further
-  functionality allows users to easily recreate files in the local host at
-  the foreign host.
+  functionalities.
+- Environment Migration: `envth` environments provide a build output that reproduces the `nix-shell` environment of the nix definition. The output can be installed with `nix-env` and entered with `enter-<name>`. Additionally, the standard `envth` shell library provides a function, `env-ssh`, that allows users to `ssh` into the current environment on a foreign host. Further functionality allows users to easily recreate files in the local host at the foreign host.
 
 > Note: `envth` requires a working `nix` installation (available on Linux
   and macOS). The `nix` based operating system, `nixOS`, is not required.
