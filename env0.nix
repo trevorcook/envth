@@ -196,13 +196,16 @@ this = mkEnvironmentWith env0-extensions rec {
             '';
         };
 
-        repl = ''
+        repl = {
+          desc = "A `nix repl` session with the current definition loaded.";
+          hook = ''
           if [[ $ENVTH_ENTRY == bin ]]; then
             nix repl $(envth caller --file "$definition_NIXSTORE")
           else
             nix repl $(envth caller)
           fi
           '';
+        };
 
         localize = {
           desc = ''Copy resources from nix store. Expects zero or more resource names as arguments. Zero arguments implies all.'';
