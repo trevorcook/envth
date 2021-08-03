@@ -2,11 +2,11 @@ self: super:
 with builtins; with self.lib;
 let
   callPackage = self.callPackage;
-  /* metafun-src = builtins.fetchGit {
+  metafun-src = builtins.fetchGit {
       url = https://github.com/trevorcook/nix-metafun.git ;
       rev = "fc6553237fde16030fe6b845a8f7766d5798cb0a"; };
-  metafun_ = callPackage (metafun-src + /metafun.nix) {}; */
-  metafun_ = self.metafun;
+  metafun_ = callPackage (metafun-src + /metafun.nix) {};
+  /* metafun_ = self.metafun; */
   envs-dir = import ./envs/default.nix self super;
 
   envth0 = mkenvth {};

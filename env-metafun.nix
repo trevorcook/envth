@@ -5,7 +5,7 @@ attrs_@{name,env-varsets?{},envlib?{},ENVTH_RESOURCES?no-resources
        ,imports?[], ...}:
 let
   array-arg =  [{name="array";desc="The name of an associative array";}];
-  setsarg = {name="varset";type=attrNames varsets;};
+  setsarg = {name="varset"; choice=attrNames varsets;};
   varsets = if isAttrs env-varsets then env-varsets else {};
   show-attrs-with-sep = f : sep: attrs:
     concatStringsSep sep (mapAttrsToList f attrs);
