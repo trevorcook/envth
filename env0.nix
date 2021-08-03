@@ -18,8 +18,7 @@ let
     resource.desc = "A resource";
     resource.set = "resource";
     resource.arg = true;
-    explicit.desc = ''Copy exact location only, no expansion of directories
-                  or setting of base directory with --to.'';
+    explicit.desc = ''Copy exact location only, no expansion of directories or setting of base directory with --to.'';
     explicit.set = "explicit";
     dryrun.desc = "Only say what would be done.";
     dryrun.set = "dryrun";
@@ -80,9 +79,7 @@ this = mkEnvironmentWith env0-extensions rec {
 
 
         caller = {
-          desc = ''Make a nix file that calls the definition using the
-            ENVTH_CALLER and ENVTH_CALLATTRS. This is basically, an ad hoc
-            `shell.nix` that calls the definition with callPackage.'';
+          desc = ''Make a nix file that calls the definition using the ENVTH_CALLER and ENVTH_CALLATTRS. This is basically, an ad hoc `shell.nix` that calls the definition with callPackage.'';
           opts = with opt-def; {
             file = file // {
               desc = ''Call "file" instead of environment definition.'';};
@@ -96,9 +93,7 @@ this = mkEnvironmentWith env0-extensions rec {
           };
 
         build = {
-          desc = ''Build the environment output--a script that enters an
-            intertactive session based on the nix-shell of an enviornment's
-            definition.'';
+          desc = ''Build the environment output--a script that enters an intertactive session based on the nix-shell of an enviornment's definition.'';
           opts = rec {
             A = attrs;
             attrs.desc = "Build an attribute within the definition.";
@@ -155,27 +150,21 @@ this = mkEnvironmentWith env0-extensions rec {
           };
 
         entry-path = {
-          desc = ''Echo the enter-env-$name location, of current enviornment,
-                   building if necessary.'';
+          desc = ''Echo the enter-env-$name location, of current enviornment, building if necessary.'';
           hook = ''
             [[ -e $ENVTH_OUT ]] || envth build &> /dev/null
             echo -n "$ENVTH_OUT/bin/enter-env-$name"
             '';
           };
         reload = {
-          desc = ''Reload environment, passing inputs as commands
-                   to be run upon reentry. Will update enviornment
-                   definition if entered from nix-shell or reenter
-                   current shell if binary based.'';
+          desc = ''Reload environment, passing inputs as commands to be run upon reentry. Will update enviornment definition if entered from nix-shell or reenter current shell if binary based.'';
           opts = {
             args.desc = ''Pass arguments to nix-shell based reloads.'';
             args.set = "args";
             args.arg = true;
-            lib.desc = ''Reload the latest source without recompiling
-                         the whole environment.'';
+            lib.desc = ''Reload the latest source without recompiling the whole environment.'';
             lib.set = "libonly";
-            here.desc = ''Re-enter the environment in current directory
-                          using the file pointed to by `definition`.'';
+            here.desc = ''Re-enter the environment in current directory using the file pointed to by `definition`.'';
             here.hook = ''unset ENVTH_ENTRY
                           ENVTH_BUILDDIR="$PWD"
                         '';
@@ -216,9 +205,7 @@ this = mkEnvironmentWith env0-extensions rec {
           '';
 
         localize = {
-          desc = ''Copy resources from nix store. Expects zero
-                  or more resource names as arguments. Zero arguments
-                  implies all.'';
+          desc = ''Copy resources from nix store. Expects zero or more resource names as arguments. Zero arguments implies all.'';
           opts = with opt-def; { inherit to dryrun env; };
           hook = ''
             declare envname=''${envname:=$name}
@@ -238,10 +225,7 @@ this = mkEnvironmentWith env0-extensions rec {
             '';
         };
         copy-store = {
-          desc = ''Copy from nix store, creating an individual file or whole
-                   directory as appropriate. Copies will check for differences
-                   in source and destination file (via md5sum) and back-up
-                   destination if different. After copy, write mode is added.
+          desc = ''Copy from nix store, creating an individual file or whole directory as appropriate. Copies will check for differences in source and destination file (via md5sum) and back-up destination if different. After copy, write mode is added.
                    '';
           opts = with opt-def; { inherit to explicit dryrun; };
           args = ["store-location" "dest"];
@@ -282,8 +266,7 @@ this = mkEnvironmentWith env0-extensions rec {
               eval "''${temp/$1=/${name}=}"
               '';
           in {
-          desc = ''Utility for working with sets of environment variables
-                   and associative arrays'';
+          desc = ''Utility for working with sets of environment variables and associative arrays'';
           commands.set = {
             desc = "Set environment variables based on an associative array.";
             args = array-arg;
@@ -333,8 +316,7 @@ this = mkEnvironmentWith env0-extensions rec {
         };
 
         deploy = {
-          desc = ''Migration to other hosts.Use in conjunction with
-                   NIX_SSHOPTS.'';
+          desc = ''Migration to other hosts.Use in conjunction with NIX_SSHOPTS.'';
           args = ["to"];
           hook = ''
             envth build
@@ -342,17 +324,11 @@ this = mkEnvironmentWith env0-extensions rec {
             '';
         };
         ssh = {
-          desc = ''SSH to the current environment on a foreign host.
-                   Allows ssh command string following <to>.
-                   Use in conjunction with NIX_SSHOPTS to supply extra
-                   ssh options.
-                   Use with ENVTH_SSH_EXPORTS to export selected enviornment
-                   variables to foreign host.'';
+          desc = ''SSH to the current environment on a foreign host. Allows ssh command string following <to>. Use in conjunction with NIX_SSHOPTS to supply extra ssh options. Use with ENVTH_SSH_EXPORTS to export selected enviornment variables to foreign host.'';
           opts = {
             no-deploy.desc = "Do not (re)copy environment to host.";
             no-deploy.set = "nodeploy";
-            env-path.desc = ''Use the supplied path instead of the
-              current envth entry-path'';
+            env-path.desc = ''Use the supplied path instead of the current envth entry-path'';
             env-path.set = "enter";
             env-path.arg = true;
           };
@@ -383,8 +359,7 @@ this = mkEnvironmentWith env0-extensions rec {
             '';
         };
         export-cmd = {
-          desc = ''Prepare a command for export to other hosts by prepending
-                 "declare" statements from ENVTH_SSH_EXPORTS'';
+          desc = ''Prepare a command for export to other hosts by prepending "declare" statements from ENVTH_SSH_EXPORTS'';
           hook =  ''
             declare -a args=()
             if [[ -n $ENVTH_SSH_EXPORTS ]]; then

@@ -71,8 +71,7 @@ in
         '';
   };
   commands.localize = {
-    desc = ''For recreating original source environment relative to a
-             directory.'';
+    desc = ''For recreating original source environment relative to a directory.'';
     opts = with opt-def; { inherit to; };
     hook = ''
       copyto="''${copyto:=$(env-home-dir)}"
