@@ -20,7 +20,7 @@ let
     resource.arg = true;
     explicit.desc = ''Copy exact location only, no expansion of directories
                   or setting of base directory with --to.'';
-    explicit.hook = "declare explicit=true";
+    explicit.set = "explicit";
     dryrun.desc = "Only say what would be done.";
     dryrun.set = "dryrun";
     env.desc = "Use named environment instead of current one.";
@@ -350,10 +350,11 @@ this = mkEnvironmentWith env0-extensions rec {
                    variables to foreign host.'';
           opts = {
             no-deploy.desc = "Do not (re)copy environment to host.";
-            no-deploy.hook = "declare nodeploy=true";
+            no-deploy.set = "nodeploy";
             env-path.desc = ''Use the supplied path instead of the
               current envth entry-path'';
-            env-path.hook = _:"declare enter=$1";
+            env-path.set = "enter";
+            env-path.arg = true;
           };
           args = [ "to" ];
           hook = ''

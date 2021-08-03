@@ -75,7 +75,7 @@ in
   commands.localize = {
     desc = ''For recreating original source environment relative to a
              directory.'';
-    opts = opt-def.to;
+    opts = with opt-def; { inherit to; };
     hook = ''
       copyto="''${copyto:=$(env-home-dir)}"
       mkdir -p $copyto
@@ -87,15 +87,6 @@ in
       done
       '';
       };
-
-    /* commands.caller = {
-      hook = ''
-        if attrs ? passthru.env-caller then
-        { "${name}-caller" = ''
-          echo "${show-caller attrs.passthru.env-caller}"
-          '';
-        }
-        ''; */
 
   commands.varsets = {
     desc = "Manipulate environment variable sets defined in env-varsets";
@@ -154,3 +145,13 @@ in
 
 
 }
+
+
+    /* commands.caller = {
+      hook = ''
+        if attrs ? passthru.env-caller then
+        { "${name}-caller" = ''
+          echo "${show-caller attrs.passthru.env-caller}"
+          '';
+        }
+        ''; */
