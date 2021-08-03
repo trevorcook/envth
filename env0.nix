@@ -72,7 +72,7 @@ this = mkEnvironmentWith env0-extensions rec {
       ENVTH_SSH_EXPORTS = "";
     };
   };
-  envlib = (import ./env0-legacy-lib.nix) // {
+  envlib = {
 
     envth = {
       desc = "envth utilities.";

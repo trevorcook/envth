@@ -23,10 +23,8 @@ let
   envs-imported = attrByPath ["passthru" "envs-imported"] [] attrs_;
   attrs-resources = filterAttrs (_: isEnvSrc) attrs_;
   attrs-resources-twopaths =
-    /* let esc = p: escape [" "] (toString p); in */
     let esc = x: x; in
     mapAttrs (n: v: "${esc v.store} ${esc v.local}") attrs-resources;
-  /* attrs-resources = ENVTH_RESOURCES.resources; */
   isNotEnvthVar = n: v: ! (isEnvthVar n v);
   isEnvthVar = n: v: hasPrefix "ENVTH" n || hasPrefix "env-" n ||
       (any (n': n == n') ["envlib" "passthru" "shellHook" "paths"]) ;
