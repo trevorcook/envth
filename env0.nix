@@ -387,10 +387,12 @@ this = mkEnvironmentWith env0-extensions rec {
                  "declare" statements from ENVTH_SSH_EXPORTS'';
           hook =  ''
             declare -a args=()
-            for i in $ENVTH_SSH_EXPORTS ENVTH_SSH_EXPORTS; do
-              args+=( "$(declare -p $i)
-            " )
-            done
+            if [[ -n $ENVTH_SSH_EXPORTS ]]; then
+              for i in $ENVTH_SSH_EXPORTS ENVTH_SSH_EXPORTS; do
+                args+=( "$(declare -p $i)
+              " )
+              done
+            fi
             if [[ -z "$@" ]]; then
               args+=( return )
             else
