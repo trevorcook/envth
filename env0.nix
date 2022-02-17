@@ -318,6 +318,29 @@ this = mkEnvironmentWith env0-extensions rec {
           };
         };
 
+        varsets = {
+          desc = ''
+            Show variable sets defined by the environment and imports.
+                Manipulate listed varsets with 'env-<name> varsets ...' functions.'';
+          hook = ''
+              declare sets
+              declare any
+              for n in $name $(env-$name imports); do
+                sets="$(env-$n varsets list)"
+                if [[ -n $sets ]]; then
+
+            cat <<EOF
+            $n ~~~~~~~~~~~~~~~~~~~~~~~~
+            $sets
+            ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+            EOF
+
+               fi
+              done
+              '';
+          };
+
         deploy = {
           desc = ''Migration to other hosts.Use in conjunction with NIX_SSHOPTS.'';
           args = ["to"];
