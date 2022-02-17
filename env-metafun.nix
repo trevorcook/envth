@@ -74,13 +74,13 @@ in
     desc = ''For recreating original source environment relative to a directory.'';
     opts = with opt-def; { inherit to; };
     hook = ''
-      copyto="''${copyto:=$(env-home-dir)}"
+      copyto="''${copyto:=$(envth home-dir)}"
       mkdir -p $copyto
       echo "%% Making Local Resources in $copyto %%%%%%%%%%%%%%%%%%%%%%%"
       declare -a arr
       arr=( ${ENVTH_RESOURCES} )
       for i in "''${arr[@]}"; do
-        env-cp-resource-to "$copyto" $i
+        envth copy-store --to "$copyto" $i
       done
       '';
       };

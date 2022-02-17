@@ -27,8 +27,8 @@ in mkEnvironment rec
       # Enters the reflex shell as per the reflex way, but runs the
       # envth shellHook to initialize the shell as per envth.
       ${checkghc "reflex-enter-shell"}
-      ENVTH_NOCLEANUP=1 env-reload-with-args -A reflex.project.shells.$ghc \
-       --command "name=reflex-$ghc; env-set-PS1; return"
+      ENVTH_NOCLEANUP=1 envth reload --args '-A reflex.project.shells.$ghc \
+       --command "name=reflex-$ghc; env-set-PS1; return"'
       '';
     reflex-open-doc = ''
       local use="Will only work after 'load-reflex-shell {ghc|ghcjs}'"
@@ -42,7 +42,7 @@ in mkEnvironment rec
       '';
     reflex-init-default-project = ''
       echo ${ ./reflex-project-default.nix }
-      env-cp-file ${ ./reflex-project-default.nix } reflex-project-default.nix
+      envth copy-store ${ ./reflex-project-default.nix } reflex-project-default.nix
       '';
 
     /* This Attempted to merge the reflex shell with the current shell.
