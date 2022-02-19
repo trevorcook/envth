@@ -120,11 +120,17 @@ this = mkEnvironmentWith env0-extensions rec {
 
         install = {
           desc = "Install current environment via nix-env.";
+          opts.bashrc.desc = "Add call to environment in current user's .bashrc.";
+          opts.bashrc.set = "bashrc";
           hook = ''
             if [[ $ENVTH_ENTRY != bin ]]; then
               nix-env -if $(envth caller)
             else
               nix-env -i $ENVTH_OUT
+            fi
+            if [[ $bashrc == true ]]; then
+            sed -i "1s:^:[[ -n \$ENVTH_ENTRY ]] || exec enter-env-$name \"source ~/.bashrc ; envth set-PS1; return\" \n:" ~/.bashrc
+            #echo "install, $bashrc"
             fi
             '';
         };
