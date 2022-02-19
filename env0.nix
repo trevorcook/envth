@@ -150,7 +150,7 @@ this = mkEnvironmentWith env0-extensions rec {
           };
 
         entry-path = {
-          desc = ''Echo the enter-env-$name location, of current enviornment, building if necessary.'';
+          desc = ''Echo the enter-envfun-$name location, of current enviornment, building if necessary.'';
           hook = ''
             [[ -e $ENVTH_OUT ]] || envth build &> /dev/null
             echo -n "$ENVTH_OUT/bin/enter-env-$name"
@@ -462,10 +462,10 @@ this = mkEnvironmentWith env0-extensions rec {
         lib = {
           desc = ''Show all libs in order of their import.'';
           hook = ''
-            for n in $(env-''${name} imports) $name; do
+            for n in $(envfun-''${name} imports) $name; do
             cat <<EOF
             $n ~~~~~~~~~~~~~~~~~~~~~~~~~
-            $(env-$n lib)
+            $(envfun-$n lib)
             ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
             EOF

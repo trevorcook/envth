@@ -77,8 +77,8 @@ rec {
                      "env-caller" "env-varsets"])
                     attrs.passthru.attrs-pre;
       extras = {
-      "env-${name}" = import ./env-metafun.nix
-        {fname = "env-${name}"; inherit lib extras envth;}
+      "envfun-${name}" = import ./env-metafun.nix
+        {fname = "envfun-${name}"; inherit lib extras envth;}
         attrs;
       };
   in extras;
