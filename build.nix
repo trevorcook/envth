@@ -33,6 +33,8 @@ rec {
         # enter-env-${name} [CommandString]
         # enter the environment, optionally running the CommandString
 
+        # ENVTH_DEBUG=true
+
         [[ -n $ENVTH_DEBUG ]] && {
           echo ENVTH_DEBUG=$ENVTH_DEBUG
           echo "##### enter-env-${name}: $HOSTNAME #######"

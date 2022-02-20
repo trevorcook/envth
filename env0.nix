@@ -381,13 +381,13 @@ this = mkEnvironmentWith env0-extensions rec {
               echo "Will connect to $host"
               [[ -n "$*" ]] && {
                 echo "Command arguments:"
-                for i in "$@"; do
+                for i in "$cmd"; do
                   echo " - arg: $i"
                 done ; }
               echo "~~~~~~~~~~~~~"
-              echo ssh  -t $NIX_SSHOPTS "$host" "$enter $cmd"
+              echo ssh -t $NIX_SSHOPTS "$host" "$enter \"$cmd\""
               echo "##########################"
-              ssh  $NIX_SSHOPTS "$host" "$enter $cmd"
+              ssh -t $NIX_SSHOPTS "$host" "$enter \"$cmd\""
               ssh_cond=$?
               echo "--- Returned to $(hostname) ---"
               return $ssh_cond
