@@ -122,14 +122,18 @@ this = mkEnvironmentWith env0-extensions rec {
           desc = "Install current environment via nix-env.";
           opts.bashrc.desc = "Add call to environment in current user's .bashrc.";
           opts.bashrc.set = "bashrc";
-          hook = ''
+          hook =
+            let
+              guarded-exec = ''
+                [[ -z \$PS1 ]] || [[ -n \$ENVTH_ENTRY ]] || exec enter-env-$name \"source ~/.bashrc ; envth set-PS1; return\" \n'';
+            in ''
             if [[ $ENVTH_ENTRY != bin ]]; then
               nix-env -if $(envth caller)
             else
               nix-env -i $ENVTH_OUT
             fi
             if [[ $bashrc == true ]]; then
-            sed -i "1s:^:[[ -n \$ENVTH_ENTRY ]] || exec enter-env-$name \"source ~/.bashrc ; envth set-PS1; return\" \n:" ~/.bashrc
+            sed -i "1s:^:${guarded-exec}:" ~/.bashrc
             #echo "install, $bashrc"
             fi
             '';
@@ -383,7 +387,7 @@ this = mkEnvironmentWith env0-extensions rec {
               echo "~~~~~~~~~~~~~"
               echo ssh  -t $NIX_SSHOPTS "$host" "$enter $cmd"
               echo "##########################"
-              ssh -t $NIX_SSHOPTS "$host" "$enter $cmd"
+              ssh  $NIX_SSHOPTS "$host" "$enter $cmd"
               ssh_cond=$?
               echo "--- Returned to $(hostname) ---"
               return $ssh_cond
