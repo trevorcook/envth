@@ -48,7 +48,7 @@ this = mkEnvironmentWith env0-extensions rec {
       ENVTH_OUT=$out
       # envth build >> /dev/null &
     else
-      ENVTH_BUILDDIR=$PWD
+      envth home-dir
     fi
     envth set-PS1
     envth PATH-nub
@@ -375,7 +375,8 @@ this = mkEnvironmentWith env0-extensions rec {
             {
               declare enter=''${enter:=$(envth entry-path)};
               declare ssh_cond
-              declare cmd="$(envth export-cmd "$@")"
+              declare cmd="$(cmd-wrap "$(envth export-cmd "$@")")"
+              #declare cmd="$(envth export-cmd "$@")"
 
               echo "##########################"
               echo "Will connect to $host"
@@ -385,9 +386,10 @@ this = mkEnvironmentWith env0-extensions rec {
                   echo " - arg: $i"
                 done ; }
               echo "~~~~~~~~~~~~~"
-              echo ssh -t $NIX_SSHOPTS "$host" "$enter \"$cmd\""
+              echo ssh -t $NIX_SSHOPTS "$host" "$enter $cmd"
               echo "##########################"
-              ssh -t $NIX_SSHOPTS "$host" "$enter \"$cmd\""
+              #ssh -t $NIX_SSHOPTS "$host" "$enter \"$cmd\""
+              ssh -t $NIX_SSHOPTS "$host" "$enter $cmd"
               ssh_cond=$?
               echo "--- Returned to $(hostname) ---"
               return $ssh_cond
@@ -400,7 +402,12 @@ this = mkEnvironmentWith env0-extensions rec {
             declare -a args=()
             if [[ -n $ENVTH_SSH_EXPORTS ]]; then
               for i in $ENVTH_SSH_EXPORTS ENVTH_SSH_EXPORTS; do
-                args+=( "$(declare -p $i)
+              # The enter-env script runs the declarations in a function.
+              # declare -p will not append a "g" option. Hence the following
+              # workaround.
+              #  args+=( "$(declare -p $i)
+              #" )
+                args+=( "declare -xg $i=$(cmd-wrap "$(eval echo \$"$(echo $i)")")
               " )
               done
             fi
