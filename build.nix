@@ -33,7 +33,9 @@ rec {
         # enter-env-${name} [CommandString]
         # enter the environment, optionally running the CommandString
 
-        # ENVTH_DEBUG=true
+        #echo setting ENVTH_DEBUG. was $DEBUG
+        #ENVTH_DEBUG=true
+        #NONINTERACTIVE=1
 
         [[ -n $ENVTH_DEBUG ]] && {
           echo ENVTH_DEBUG=$ENVTH_DEBUG
@@ -78,12 +80,12 @@ rec {
 
         if [[ -n $NONINTERACTIVE ]]; then
           [[ -n $ENVTH_DEBUG ]] && echo NONINTERRACTIVE
-          exec ${bashInteractive}/bin/bash -c "$shellHook
+          exec ${bashInteractive}/bin/bash -isc "$shellHook
           eval-ENVTH_COMMANDLINEHOOK"
         else
           [[ -n $ENVTH_DEBUG ]] && echo INTERACTIVE
           exec ${bashInteractive}/bin/bash --init-file <(echo "$shellHook
-          eval-ENVTH_COMMANDLINEHOOK")
+        eval-ENVTH_COMMANDLINEHOOK")
         fi
         '';
 
