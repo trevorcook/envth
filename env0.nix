@@ -414,6 +414,7 @@ this = mkEnvironmentWith env0-extensions rec {
           desc = ''Prepare a command for export to other hosts by prepending "declare" statements from ENVTH_SSH_EXPORTS'';
           hook =  ''
             declare -a args=()
+            declare val
             if [[ -n $ENVTH_SSH_EXPORTS ]]; then
               for i in $ENVTH_SSH_EXPORTS ENVTH_SSH_EXPORTS; do
               # The enter-env script runs the declarations in a function.
@@ -421,7 +422,9 @@ this = mkEnvironmentWith env0-extensions rec {
               # workaround.
               #  args+=( "$(declare -p $i)
               #" )
-                args+=( "declare -xg $i=$(cmd-wrap "$(eval echo \$"$(echo $i)")")
+                val="$(declare -p $i)"
+                val="''${arg/declare?( -x)/}"
+                args+=( "declare -xg $i=$(cmd-wrap "$val")")
               " )
               done
             fi
