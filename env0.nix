@@ -424,7 +424,7 @@ this = mkEnvironmentWith env0-extensions rec {
               #" )
                 val="$(declare -p $i)"
                 val="''${arg/declare?( -x)/}"
-                args+=( "declare -xg $i=$(cmd-wrap "$val")")
+                args+=( "declare -xg $i=$(cmd-wrap "$val")
               " )
               done
             fi
