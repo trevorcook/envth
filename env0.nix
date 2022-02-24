@@ -225,7 +225,7 @@ this = mkEnvironmentWith env0-extensions rec {
             declare flags="''${dryrun:+--dryrun}"
 
             declare -A rsrcs
-            env-''${envname} resource --array=rsrcs
+            envfun-''${envname} resource --array=rsrcs
             if [[ $# == 0 ]]; then
               for resource in ''${!rsrcs[@]}; do
                 envth copy-store $flags ''${rsrcs[$resource]}
@@ -336,7 +336,7 @@ this = mkEnvironmentWith env0-extensions rec {
               declare sets
               declare any
               for n in $name $(env-$name imports); do
-                sets="$(env-$n varsets list)"
+                sets="$(envfun-$n varsets list)"
                 if [[ -n $sets ]]; then
 
             cat <<EOF
