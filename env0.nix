@@ -48,7 +48,7 @@ this = mkEnvironmentWith env0-extensions rec {
       ENVTH_OUT=$out
       # envth build >> /dev/null &
     else
-      envth home-dir
+      envth home-dir >> /dev/null 
     fi
     envth set-PS1
     envth PATH-nub
