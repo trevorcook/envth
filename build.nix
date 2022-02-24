@@ -80,7 +80,7 @@ rec {
 
         if [[ -n $NONINTERACTIVE ]]; then
           [[ -n $ENVTH_DEBUG ]] && echo NONINTERRACTIVE
-          exec ${bashInteractive}/bin/bash -isc "$shellHook
+          exec ${bashInteractive}/bin/bash -c "$shellHook
           eval-ENVTH_COMMANDLINEHOOK"
         else
           [[ -n $ENVTH_DEBUG ]] && echo INTERACTIVE

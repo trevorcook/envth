@@ -48,7 +48,7 @@ this = mkEnvironmentWith env0-extensions rec {
       ENVTH_OUT=$out
       # envth build >> /dev/null &
     else
-      envth home-dir >> /dev/null 
+      envth home-dir >> /dev/null
     fi
     envth set-PS1
     envth PATH-nub
@@ -160,7 +160,7 @@ this = mkEnvironmentWith env0-extensions rec {
           };
 
         entry-path = {
-          desc = ''Echo the enter-envfun-$name location, of current enviornment, building if necessary.'';
+          desc = ''Echo the enter-env-$name location, of current enviornment, building if necessary.'';
           hook = ''
             [[ -e $ENVTH_OUT ]] || envth build &> /dev/null
             echo -n "$ENVTH_OUT/bin/enter-env-$name"
@@ -361,22 +361,37 @@ this = mkEnvironmentWith env0-extensions rec {
         };
         ssh = {
           desc = ''SSH to the current environment on a foreign host. Allows ssh command string following <to>. Use in conjunction with NIX_SSHOPTS to supply extra ssh options. Use with ENVTH_SSH_EXPORTS to export selected enviornment variables to foreign host.'';
-          opts = {
+          opts = rec {
             no-deploy.desc = "Do not (re)copy environment to host.";
             no-deploy.set = "nodeploy";
+            x = no-deploy // { desc = "Same as --no-deploy"; };
             env-path.desc = ''Use the supplied path instead of the current envth entry-path'';
             env-path.set = "enter";
             env-path.arg = true;
+            b.desc = "Run the supplied command in the background, hangup.";
+            b.set = "background";
+            background = b // {desc = b.desc + " Same as -b"; };
+            logfile.desc = "Log output of command to file. Used with --background.";
+            logfile.set = "logfile";
+            logfile.arg = true;
           };
           args = [ "to" ];
           hook = ''
             declare host="$1"; shift
             { [[ $nodeploy == true ]] || envth deploy "$host" ; } && \
             {
-              declare enter=''${enter:=$(envth entry-path)};
               declare ssh_cond
               declare cmd="$(cmd-wrap "$(envth export-cmd "$@")")"
-              #declare cmd="$(envth export-cmd "$@")"
+              if [[ -z $background ]]; then
+                declare enter=''${enter:=$(envth entry-path)};
+                declare enter_cmd="$enter $cmd"
+                declare TOPT="-t"
+              else
+                declare enter=''${enter:=$(envth entry-path)-non-interactive};
+                logfile=''${logfile:=envth_ssh.log}
+                declare enter_cmd="nohup $enter $cmd > $logfile 2> $logfile.err < /dev/null &"
+                declare TOPT="-T"
+              fi
 
               echo "##########################"
               echo "Will connect to $host"
@@ -386,10 +401,9 @@ this = mkEnvironmentWith env0-extensions rec {
                   echo " - arg: $i"
                 done ; }
               echo "~~~~~~~~~~~~~"
-              echo ssh -t $NIX_SSHOPTS "$host" "$enter $cmd"
+              echo ssh $TOPT $NIX_SSHOPTS "$host" "$enter_cmd"
               echo "##########################"
-              #ssh -t $NIX_SSHOPTS "$host" "$enter \"$cmd\""
-              ssh -t $NIX_SSHOPTS "$host" "$enter $cmd"
+              ssh $TOPT $NIX_SSHOPTS "$host" "$enter_cmd"
               ssh_cond=$?
               echo "--- Returned to $(hostname) ---"
               return $ssh_cond
