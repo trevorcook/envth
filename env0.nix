@@ -331,11 +331,11 @@ this = mkEnvironmentWith env0-extensions rec {
         varsets = {
           desc = ''
             Show variable sets defined by the environment and imports.
-                Manipulate listed varsets with 'env-<name> varsets ...' functions.'';
+                Manipulate listed varsets with 'envfun-<name> varsets ...' functions.'';
           hook = ''
               declare sets
               declare any
-              for n in $name $(env-$name imports); do
+              for n in $name $(envfun-$name imports); do
                 sets="$(envfun-$n varsets list)"
                 if [[ -n $sets ]]; then
 
