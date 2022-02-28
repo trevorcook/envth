@@ -258,14 +258,14 @@ this = mkEnvironmentWith env0-extensions rec {
             # Set destination directory and expand directories to
             # multiple copies.
             else
-              declare copyto=''${copyto:=$(envth home-dir)}
+              declare copyto=''${copyto:=$(envth home-dir)/$2}
               declare flags="''${dryrun:+--dryrun}"
               if [[ -d $1 ]] ; then
-                for i in $(find $`` -type f -printf "%P\n"); do
-                  envth copy-store $flags --explicit $1/$i $copyto/$2/$i
+                for i in $(find $1 -type f -printf "%P\n"); do
+                  envth copy-store $flags --explicit $1/$i $copyto/$i
                 done
               elif [[ -e $1 ]] ; then
-                envth copy-store $flags --explicit "$1" "$copyto/$2"
+                envth copy-store $flags --explicit "$1" "$copyto"
               fi
             fi
             '';
