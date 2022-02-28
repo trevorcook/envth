@@ -1,16 +1,18 @@
 {lib}:
 with lib;
 rec {
-  mkSrc = pth: if isEnvSrc pth then pth else rec {
-      type = "env-resource";
-      __toString = x: x.store;
-      store = pth;
-      local = toString pth;
-    };
-  showLocalSrc = rsrc: rsrc // { __toString = x: x.local; };
+  mkSrc = pth: if isEnvSrc pth then pth else
+    let self = {
+          type = "env-resource";
+          __toString = x: x.local;
+          store = pth;
+          local = toString pth;
+        };
+    in self // { store = self // { __toString = x: x.store; }; };
+
   isEnvSrc = attrs: (attrs ? type) && (attrs.type == "env-resource");
 
-  mkLocalTo = ref: path:
+  mkRelativeTo = ref: path:
     let
      toPath = concatStringsSep "/";
      ref' = splitString "/" ref;
@@ -40,19 +42,15 @@ rec {
   get-localized-resources =  attrs@{ENVTH_BUILDDIR, definition,...}:
     let rsrcs = filterAttrs (_: isEnvSrc) attrs
              // { definition = mkSrc attrs.definition; };
-        relativeSrc = rsrc: rsrc
-                   // { local = mkLocalTo ENVTH_BUILDDIR rsrc.local; };
-    in mapAttrs (_: relativeSrc) rsrcs;
+        mk-relative = rsrc: rsrc //
+          { local = mkRelativeTo ENVTH_BUILDDIR rsrc.local; };
+    in mapAttrs (_: mk-relative) rsrcs;
 
 
   gather-resources = self: attrs@{ENVTH_BUILDDIR, definition,...}:
-    let attrs' = attrs // { definition = def-resource; };
-        def-resource = mkSrc definition;
-        resources = get-localized-resources attrs';
-        /* resources = get-localized-resources self; */
+    let resources = get-localized-resources attrs;
     in
       resources // {
-        definition = showLocalSrc resources.definition;
         ENVTH_RESOURCES = {
           inherit resources;
           __toString = x:
@@ -61,17 +59,4 @@ rec {
               x.resources);
         };
       };
-
-      /* { ENVTH_RESOURCES =
-        { resources = filterAttrs (_: v: isEnvSrc v) attrs';
-
-          __toString = x:
-              concatStringsSep " "
-              (map (s: ''"${s.store} ${mkLocalTo ENVTH_BUILDDIR s.local}"'')
-              (attrValues x.resources));
-        };
-        definition = mkLocalTo ENVTH_BUILDDIR def-resource.local;
-        definition_NIXSTORE = def-resource.store;
-      }; */
-
 }
