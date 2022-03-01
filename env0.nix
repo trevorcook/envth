@@ -9,8 +9,8 @@ let
     changed.set="changed";
     names-only.desc="Only print the names of variables set.";
     names-only.set="namesonly";
-    /* array.desc = "Show the varset as the values of an associative array";
-    array.hook = ''declare array=true''; */
+    array.desc = "Show the varset as the values of an associative array";
+    array.hook = ''declare array=true'';
     to.desc = "copy to directory";
     to.arg = true;
     to.set = "copyto";
@@ -217,24 +217,35 @@ this = mkEnvironmentWith env0-extensions rec {
           '';
         };
 
+        resource = {
+          desc = ''Show environment resources.'';
+          opts = with opt-def; { inherit current changed names-only; };
+          hook = ''
+            for n in $name $(envfun-$name imports); do
+              if [[ $n != env0 ]]; then
+          cat <<EOF
+          $n ~~~~~~~~~~~~~~~~~~~~~~~~
+          $(envfun-$n resource ${pass-flags})
+          ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+          EOF
+              fi
+            done
+            '';
+        };
         localize = {
           desc = ''Copy resources from nix store. Expects zero or more resource names as arguments. Zero arguments implies all.'';
           opts = with opt-def; { inherit to dryrun env; };
           hook = ''
-            declare envname=''${envname:=$name}
             declare flags="''${dryrun:+--dryrun}"
-
-            declare -A rsrcs
-            envfun-''${envname} resource --array=rsrcs
-            if [[ $# == 0 ]]; then
-              for resource in ''${!rsrcs[@]}; do
-                envth copy-store $flags ''${rsrcs[$resource]}
-              done
-            else
-              for resource in "$@"; do
-                envth copy-store $flags ''${rsrcs[$resource]}
-              done
-            fi
+            echo "Unimplemented. Something like:"
+            for n in $name $(envfun-$name imports); do
+              if [[ $n == $name ]]; then
+                echo "envfun-$n localize --to ."
+              else
+                echo "envfun-$n localize --to envs/$n"
+              fi
+            done
             '';
         };
         copy-store = {
@@ -245,7 +256,7 @@ this = mkEnvironmentWith env0-extensions rec {
           hook = ''
             # Do the copy
             if [[ $explicit == true ]]; then
-              mkdir -p $(dirname $2)
+              [[ $dryrun != true ]] && mkdir -p $(dirname $2)
               if [[ -e $2 ]] && [[ $(arg-n 1 $(md5sum $1)) == $(arg-n 1 $(md5sum $2)) ]]; then
                 echo "No Create : $2"
               else

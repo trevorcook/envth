@@ -38,23 +38,6 @@ rec {
     destination = "/lib/${name}-envlib.sh";
   };
 
-  /* mk-envlib-sh = name: lib:
-    let lib-file = writeTextFile
-          { name = "${name}-envlib.sh";
-            text = mkShellFunctions lib;
-          };
-    in runCommand name {} ''
-    # Make the Shell Function File
-    mkdir -p $out/lib
-    ln -s ${lib-file} $out/lib/${name}
-
-    # Make a Version of the Shell Functions as HTML
-    mkdir -p $out/doc/html
-    ln -s ${mk-envlib-doc name lib-file} $out/doc/html/${name}.html
-    ${tree}/bin/tree -H "$out/doc/html/" -L 1 --noreport --charset utf-8 \
-      $out/doc/html/. > $out/doc/html/index.html
-    ''; */
-
   mkLibsDocDir = name: libs: runCommand "${name}-importLibs" { inherit libs; } ''
     #NOTE: This command will fail (probably) for env names with spaces.
     mkdir -p $out/doc/html

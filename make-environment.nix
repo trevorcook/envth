@@ -38,17 +38,8 @@ rec
   mkEnvironment = mkEnvironmentWith env-extensions ;
   mkEnvironmentWith = exts-in: attrs:
     let
-      /* f = process-attrs exts-in;
-      proc = exts: fix (extends exts (_: attrs));
-      base = stdenv.mkDerivation (proc f);
-      final = stdenv.mkDerivation (proc f');
-      f' = composeExtensions (add-drv-path base) f; */
-
       proc = exts: fix (extends exts (_: attrs));
       f = process-attrs exts-in;
-      #attrs' = attrs ++ [(add-drv-path final)];
-      /* exts = [(add-drv-path final)] ++
-             exts-in; */
       final = stdenv.mkDerivation (proc f);
     in final;
 }

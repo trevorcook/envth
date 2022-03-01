@@ -21,7 +21,8 @@ let
       '';
   attrs-pre = filterAttrs isNotEnvthVar attrs_.passthru.attrs-pre;
   envs-imported = attrByPath ["passthru" "envs-imported"] [] attrs_;
-  attrs-resources = filterAttrs (_: isEnvSrc) attrs_;
+  /* attrs-resources = filterAttrs (_: isEnvSrc) attrs_; */
+  attrs-resources = ENVTH_RESOURCES.resources;
   attrs-resources-twopaths =
     let esc = x: x; in
     mapAttrs (n: v: "${esc v.store} ${esc v.local}") attrs-resources;
@@ -51,6 +52,10 @@ let
     to.desc = "Copy to directory";
     to.set = "copyto";
     to.arg = true;
+    dryrun.desc = "Only say what would be done.";
+    dryrun.set = "dryrun";
+
+
   };
 in
 
@@ -60,7 +65,7 @@ in
 
   commands.resource = {
     desc = "Show resources associated with environment.";
-    opts = with opt-def; { inherit current changed array; };
+    opts = with opt-def; { inherit current changed array names-only; };
     hook = ''
       if [[ -n $arrayname ]]; then
         eval $arrayname='${ show-attrs-as-assocArray attrs-resources-twopaths }'
@@ -70,7 +75,7 @@ in
       fi
         '';
   };
-  commands.localize = {
+  /* commands.localize-old = {
     desc = ''For recreating original source environment relative to a directory.'';
     opts = with opt-def; { inherit to; };
     hook = ''
@@ -83,7 +88,29 @@ in
         envth copy-store --to "$copyto" $i
       done
       '';
-      };
+      }; */
+
+  commands.localize = {
+          desc = ''Copy "mkSrc" resources from nix store. Expects zero or more resource names as arguments. Zero arguments implies all.'';
+          opts = with opt-def; { inherit to dryrun; };
+          hook = ''
+            dryrun="''${dryrun:+--dryrun}"
+            copyto="''${copyto:+--to=$copyto}"
+
+            declare -A rsrcs
+            envfun-${name} resource --array=rsrcs
+            if [[ $# == 0 ]]; then
+              for resource in ''${!rsrcs[@]}; do
+                envth copy-store $dryrun $copyto ''${rsrcs[$resource]}
+              done
+            else
+              for resource in "$@"; do
+                envth copy-store $dryrun $copyto ''${rsrcs[$resource]}
+              done
+            fi
+            '';
+        };
+
 
   commands.varsets = {
     desc = "Manipulate environment variable sets defined in env-varsets";
