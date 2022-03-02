@@ -96,6 +96,7 @@ in
           hook = ''
             dryrun="''${dryrun:+--dryrun}"
             copyto="''${copyto:+--to=$copyto}"
+            #declare -p dryrun copyto
 
             declare -A rsrcs
             envfun-${name} resource --array=rsrcs

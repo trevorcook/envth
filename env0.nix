@@ -235,15 +235,20 @@ this = mkEnvironmentWith env0-extensions rec {
         };
         localize = {
           desc = ''Copy resources from nix store. Expects zero or more resource names as arguments. Zero arguments implies all.'';
-          opts = with opt-def; { inherit to dryrun env; };
+          opts = with opt-def; { inherit dryrun to;
+            import-dir.desc = "Directory prefix for imported resources.";
+            import-dir.set = "importdir";
+            import-dir.arg = "dir"; };
           hook = ''
-            declare flags="''${dryrun:+--dryrun}"
-            echo "Unimplemented. Something like:"
+            dryrun="''${dryrun:+--dryrun}"
+            importdir="''${importdir:=envs}"
+            copyto="''${copyto:=.}"
             for n in $name $(envfun-$name imports); do
               if [[ $n == $name ]]; then
-                echo "envfun-$n localize --to ."
+                envfun-$n localize $dryrun --to "$copyto"
+              #elif [[ $n != env0 ]]; then
               else
-                echo "envfun-$n localize --to envs/$n"
+                envfun-$n localize $dryrun --to "$copyto/$importdir/$n"
               fi
             done
             '';
@@ -269,14 +274,16 @@ this = mkEnvironmentWith env0-extensions rec {
             # Set destination directory and expand directories to
             # multiple copies.
             else
-              declare copyto=''${copyto:=$(envth home-dir)/$2}
-              declare flags="''${dryrun:+--dryrun}"
+              declare copyto=''${copyto:=$(envth home-dir)}
+              declare dryrun="''${dryrun:+--dryrun}"
               if [[ -d $1 ]] ; then
                 for i in $(find $1 -type f -printf "%P\n"); do
-                  envth copy-store $flags --explicit $1/$i $copyto/$i
+                  #echo envth copy-store $dryrun --explicit $1/$i $copyto/$i
+                  envth copy-store $dryrun --explicit $1/$i $copyto/$i
                 done
               elif [[ -e $1 ]] ; then
-                envth copy-store $flags --explicit "$1" "$copyto"
+                #echo envth copy-store $dryrun --explicit "$1" "$copyto/$2"
+                envth copy-store $dryrun --explicit "$1" "$copyto/$2"
               fi
             fi
             '';
