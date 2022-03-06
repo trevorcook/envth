@@ -5,8 +5,8 @@ let
   metafun-src = builtins.fetchGit {
       url = https://github.com/trevorcook/nix-metafun.git ;
       rev = "e0b5130e7c27dd33c55e6006b2b3dca62f175ec7"; };
-  /* metafun_ = callPackage (metafun-src + /metafun.nix) {}; */
-  metafun_ = self.metafun;
+  metafun_ = callPackage (metafun-src + /metafun.nix) {};
+  /* metafun_ = self.metafun; */
   envs-dir = import ./envs/default.nix self super;
 
   envth0 = mkenvth {};
