@@ -1,13 +1,11 @@
 # `envth`: For Writing Your n<sup>th</sup> Environment
 
-This repository provides `mkEnvironment`, a [nix](https://nixos.org/) utility for working with `nix-shell` environments.
+This repository provides `mkEnvironment`, a [nix](https://nixos.org/) utility that creates derivations that replicate the `nix-shell` environment of their definition.
 
 ## Features
 
-- Modular environments: Capture common tasks as libraries of shell
-  functions. Import other `envth` environments to inherit their
-  functionalities.
-- Environment Migration: `envth` environments provide a build output that reproduces the `nix-shell` environment of the nix definition. The output can be installed with `nix-env` and entered with `enter-<name>`. Additionally, the standard `envth` shell library provides a function, `env-ssh`, that allows users to `ssh` into the current environment on a foreign host. Further functionality allows users to easily recreate files in the local host at the foreign host.
+- Modular environments: Capture common tasks as libraries of shell   functions. Import other `envth` environments to inherit their   functionalities.
+- Environment Migration: `envth` environments provide a build output that reproduces the `nix-shell` environment of the nix definition. The output can be installed with `nix-env` and entered with `enter-env-<name>`. Additionally, the standard `envth` shell library provides a function, `envth ssh`, that allows users to `ssh` into the current environment on a foreign host. Further functionality allows users to easily recreate files in the local host at the foreign host.
 
 > Note: `envth` requires a working `nix` installation (available on Linux
   and macOS). The `nix` based operating system, `nixOS`, is not required.
@@ -47,7 +45,7 @@ cat >shell.nix <<'EOF'
 let
   envth-src = builtins.fetchGit {
       url = https://github.com/trevorcook/envth.git ;
-      rev = "0bbdaaf75aab070f723c8bac9d0dd6fc22c29882"; };
+      rev = "159b735525b6d9e7396749e3dd64a24c7570ce0c"; };
   envth-overlay = self: super: { envth = import envth-src self super; };
   nixpkgs = import <nixpkgs> { overlays = [ envth-overlay ]; };
 in {definition ? ./env-1.nix}: nixpkgs.callPackage definition {}
@@ -94,7 +92,7 @@ cat >shell.nix <<'EOF'
 let
   envth-src = builtins.fetchGit {
       url = https://github.com/trevorcook/envth.git ;
-      rev = "0bbdaaf75aab070f723c8bac9d0dd6fc22c29882"; };
+      rev = "159b735525b6d9e7396749e3dd64a24c7570ce0c"; };
   envth-overlay = self: super: { envth = import envth-src self super; };
   nixpkgs = import <nixpkgs> { overlays = [ envth-overlay ]; };
 in {definition ? ./sample.nix}: nixpkgs.callPackage definition {}
@@ -167,7 +165,7 @@ For linux, add the following to `~/.config/nixpkgs/overlays/envth.nix`:
   let
     envth-src = builtins.fetchGit {
         url = https://github.com/trevorcook/envth.git ;
-        rev = "0bbdaaf75aab070f723c8bac9d0dd6fc22c29882"; };
+        rev = "159b735525b6d9e7396749e3dd64a24c7570ce0c"; };
   in
   self: super: { envth = import envth-src self super; }
   ```

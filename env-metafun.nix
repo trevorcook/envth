@@ -122,7 +122,7 @@ in
         do-set = n: v:
           if isNull v then
             "unset ${n}"
-          else "declare -xg ${n}=${toString v}";
+          else '''declare -xg ${n}="${toString v}"'';
       in
         sets-case (_: show-attrs-with-sep do-set "\n") varsets;
       };
