@@ -279,7 +279,7 @@ this = mkEnvironmentWith env0-extensions rec {
               if [[ -d $1 ]] ; then
                 for i in $(find $1 -type f -printf "%P\n"); do
                   #echo envth copy-store $dryrun --explicit $1/$i $copyto/$1/$i
-                  envth copy-store $dryrun --explicit $1/$i $copyto/$i
+                  envth copy-store $dryrun --explicit $1/$i $copyto/$1/$i
                 done
               elif [[ -e $1 ]] ; then
                 #echo envth copy-store $dryrun --explicit "$1" "$copyto/$2"
