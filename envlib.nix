@@ -93,7 +93,7 @@ rec {
   show-vars-current = make-vars-string (n: v: "${n} = \${"+"${n}}");
   show-vars-default = make-vars-string (n: v: "${n} = ${builtins.toString v}");
 
-  make-envlib = self: super@{import_libs ? [], name, ...}:
+  make-envlib = self: super@{import_libs ? [], name, env-varsets?{},...}:
     let
       import_libs_out = uniquer ( import_libs ++ [envlib] );
       envlib = mkEnvLib (super );
@@ -106,7 +106,7 @@ rec {
        else
          { libs_doc = mkLibsDocDir name import_libs_out; }; */
     in {
-      env-varsets = null;
+      env-varsets = {__toString=_:null;}//env-varsets;
       inherit envlib;
       import_libs = import_libs_out;
       importLibsHook = concatMapStrings sourceLib import_libs_out;
