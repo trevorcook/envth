@@ -348,9 +348,74 @@ this = mkEnvironmentWith env0-extensions rec {
 
         varsets = {
           desc = ''
-            Show variable sets defined by the environment and imports.
-                Manipulate listed varsets with 'envfun-<name> varsets ...' functions.'';
-          hook = ''
+            Manipulate variable sets defined by the environment and imports.
+            '';
+          commands.set = {
+            desc = "Set the varset keys to environment variables.";
+            preOptHook = ''
+              declare -f nub
+              nub(){
+                echo $1 | tr ' ' '\n' | sort -u
+              }
+              declare -f elem
+              elem(){
+                if [[ "$(nub "$1 $2")" == "$(nub "$2")" ]]; then
+                  echo true
+                else
+                  echo false
+                fi
+              }
+              declare -f testelem
+              testelem(){
+                echo "elem \"$1\" \"$2\""? $(elem "$1" "$2")
+              }
+
+
+              declare -f _setsargs_list
+              _setsargs_list(){
+                declare envs="$name $(envfun-$name imports)"
+                declare sets
+                for env in $envs; do
+                  sets="$sets $(envfun-$env varsets list)"
+                done
+                nub "$sets"
+
+
+              }
+
+              '';
+            hook = ''
+              declare envs="$name $(envfun-$name imports)"
+              declare -p envs
+              declare envswsets
+              for env in $envs; do
+                sets="$(envfun-$env varsets list)"
+                [[ -n $sets ]] && envswsets="$envswsets $env"
+              done
+              declare -p envswsets
+              _setsargs_list
+              testelem 1 "1 2"
+              testelem 2 "1 2"
+              testelem 3 "1 2"
+              echo arg=$1
+              declare inenv
+              for env in $envs; do
+                echo env=$env
+                testelem "$1" "$(envfun-$env varsets list)"
+                if [[ true == $(elem "$1" "$(envfun-$env varsets list)") ]]; then
+                  inenv=$env
+                  break
+                fi
+              done
+              if [[ -n $inenv ]]; then
+                echo env of arg: $inenv
+                envfun-$inenv varsets set $1
+              else
+                echo arg not found in any env
+              fi
+              '';
+          };
+          commands.list = ''
               declare sets
               declare any
               for n in $name $(envfun-$name imports); do
@@ -368,6 +433,39 @@ this = mkEnvironmentWith env0-extensions rec {
               done
               '';
           };
+  /* commands.varsets = {
+    desc = "Manipulate environment variable sets defined in env-varsets";
+    commands.set = {
+      desc = "Set the varset keys to environment variables.";
+      args = if varsets!={} then [setsarg] else [];
+      hook = let
+        do-set = n: v:
+          if isNull v then
+            "unset ${n}"
+          else ''declare -xg ${n}="${toString v}"'';
+      in
+        sets-case (_: show-attrs-with-sep do-set "\n") varsets;
+      };
+    commands.list = {
+      desc = "Show available varsets.";
+      hook = ''echo ${show-attrs-with-sep (n: _: n) " " varsets}'';
+    };
+    commands.show = {
+      desc = "Show the value assignments of a varset.";
+      opts = with opt-def; {inherit current changed names-only;};
+      args = if varsets!={} then [setsarg] else [];
+      hook = ''
+        ${sets-case
+           ( n: s : ''declare -A vars=${ show-attrs-as-assocArray s }'')
+           varsets }
+        envth array-vars show ${pass-flags} vars
+        '';
+    };
+  }; */
+
+
+
+
 
         deploy = {
           desc = ''Migration to other hosts.Use in conjunction with NIX_SSHOPTS.'';
