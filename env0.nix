@@ -404,10 +404,20 @@ this = mkEnvironmentWith env0-extensions rec {
                         echo $sets | tr ' ' '\n' | sort -u
                         '';
                      }];
+            opts = {
+              env.desc = "Use set from named environment.";
+              env.set = "inenv";
+              env.arg.name="env"; #or the option name (if opt argument).
+              env.arg.completion.hint = "<arg:env>";
+              env.arg.completion.hook = ''
+                echo "$name $(envfun-$name imports)"
+                '';
+            };
             hook = ''
               declare envs="$name $(envfun-$name imports)"
-              declare inenv
+              declare inenv=''${inenv:=}
               for env in $envs; do
+                [[ -n $inenv ]] && break
                 if [[ true == $(elem "$1" "$(envfun-$env varsets list)") ]]; then
                   inenv=$env
                   break
