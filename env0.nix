@@ -353,11 +353,11 @@ this = mkEnvironmentWith env0-extensions rec {
           commands.set = {
             desc = "Set the varset keys to environment variables.";
             preOptHook = ''
-              declare -f nub
+              #declare -f nub
               nub(){
                 echo $1 | tr ' ' '\n' | sort -u
               }
-              declare -f elem
+              #declare -f elem
               elem(){
                 if [[ "$(nub "$1 $2")" == "$(nub "$2")" ]]; then
                   echo true
@@ -365,55 +365,60 @@ this = mkEnvironmentWith env0-extensions rec {
                   echo false
                 fi
               }
-              declare -f testelem
-              testelem(){
-                echo "elem \"$1\" \"$2\""? $(elem "$1" "$2")
-              }
-
-
-              declare -f _setsargs_list
-              _setsargs_list(){
-                declare envs="$name $(envfun-$name imports)"
-                declare sets
-                for env in $envs; do
-                  sets="$sets $(envfun-$env varsets list)"
-                done
-                nub "$sets"
-
-
-              }
-
               '';
+              #declare -f testelem
+              #testelem(){
+              #  echo "elem \"$1\" \"$2\""? $(elem "$1" "$2")
+              #}
+              #declare -f _setsargs_list
+              #_setsargs_list(){
+              #  declare envs="$name $(envfun-$name imports)"
+              #  declare sets
+              #  for env in $envs; do
+              #    sets="$sets $(envfun-$env varsets list)"
+              #  done
+              #  nub "$sets"
+              #}
+              #declare -p envs
+              #declare envswsets
+              #for env in $envs; do
+              #  sets="$(envfun-$env varsets list)"
+              #  [[ -n $sets ]] && envswsets="$envswsets $env"
+              #done
+              #declare -p envswsets
+              #_setsargs_list
+              #testelem 1 "1 2"
+              #testelem 2 "1 2"
+              #testelem 3 "1 2"
+              #echo arg=$1
+
+            args = [{ name="varset"; #or the option name (if opt argument).
+                      desc="The varset attribute.";
+                      completion.hint = "<arg:varset>";
+                      completion.hook = ''
+                        declare envs="$name $(envfun-$name imports)"
+                        declare sets
+                        for env in $envs; do
+                          sets="$sets $(envfun-$env varsets list)"
+                        done
+                        echo $sets | tr ' ' '\n' | sort -u
+                        '';
+                     }];
             hook = ''
               declare envs="$name $(envfun-$name imports)"
-              declare -p envs
-              declare envswsets
-              for env in $envs; do
-                sets="$(envfun-$env varsets list)"
-                [[ -n $sets ]] && envswsets="$envswsets $env"
-              done
-              declare -p envswsets
-              _setsargs_list
-              testelem 1 "1 2"
-              testelem 2 "1 2"
-              testelem 3 "1 2"
-              echo arg=$1
               declare inenv
               for env in $envs; do
-                echo env=$env
-                testelem "$1" "$(envfun-$env varsets list)"
                 if [[ true == $(elem "$1" "$(envfun-$env varsets list)") ]]; then
                   inenv=$env
                   break
                 fi
               done
               if [[ -n $inenv ]]; then
-                echo env of arg: $inenv
                 envfun-$inenv varsets set $1
-              else
-                echo arg not found in any env
               fi
               '';
+
+
           };
           commands.list = ''
               declare sets
