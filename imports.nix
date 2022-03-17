@@ -84,6 +84,7 @@ rec
           /* addEnvs = keeplist; */
           env-addEnvs = keeplist;
           ###
+          env-varsets = keepattr;
           name = keepstring;
           definition = keepstring;
           envlib = keepattr;
