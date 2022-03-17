@@ -22,9 +22,16 @@ let
     explicit.set = "explicit";
     dryrun.desc = "Only say what would be done.";
     dryrun.set = "dryrun";
-    env.desc = "Use named environment instead of current one.";
+    /* env.desc = "Use named environment instead of current one.";
     env.set = "envname";
-    env.arg = true;
+    env.arg = true; */
+    env.desc = "Use set from named environment.";
+    env.set = "envname";
+    env.arg.name="env"; #or the option name (if opt argument).
+    env.arg.completion.hint = "<arg:env>";
+    env.arg.completion.hook = ''
+      echo "$name $(envfun-$name imports)"
+      '';
     file.desc = "Use file";
     file.set = "fileinput";
     file.arg = true;
@@ -404,31 +411,21 @@ this = mkEnvironmentWith env0-extensions rec {
                         echo $sets | tr ' ' '\n' | sort -u
                         '';
                      }];
-            opts = {
-              env.desc = "Use set from named environment.";
-              env.set = "inenv";
-              env.arg.name="env"; #or the option name (if opt argument).
-              env.arg.completion.hint = "<arg:env>";
-              env.arg.completion.hook = ''
-                echo "$name $(envfun-$name imports)"
-                '';
-            };
+            opts = { inherit (opt-def) env; };
             hook = ''
               declare envs="$name $(envfun-$name imports)"
-              declare inenv=''${inenv:=}
+              declare envname=''${envname:=}
               for env in $envs; do
-                [[ -n $inenv ]] && break
+                [[ -n $envname ]] && break
                 if [[ true == $(elem "$1" "$(envfun-$env varsets list)") ]]; then
-                  inenv=$env
+                  envname=$env
                   break
                 fi
               done
-              if [[ -n $inenv ]]; then
-                envfun-$inenv varsets set $1
+              if [[ -n $envname ]]; then
+                envfun-$envname varsets set $1
               fi
               '';
-
-
           };
           commands.list = ''
               declare sets
@@ -447,7 +444,19 @@ this = mkEnvironmentWith env0-extensions rec {
                fi
               done
               '';
-          };
+          /* commands.show = {
+            desc = "Show the value assignments of a varset.";
+            opts = with opt-def; {inherit current changed names-only env;};
+            args = if varsets!={} then [setsarg] else [];
+            hook = ''
+              ${sets-case
+                 ( n: s : ''declare -A vars=${ show-attrs-as-assocArray s }'')
+                 varsets }
+              envth array-vars show ${pass-flags} vars
+              '';
+          }; */
+
+        };
   /* commands.varsets = {
     desc = "Manipulate environment variable sets defined in env-varsets";
     commands.set = {
@@ -464,17 +473,6 @@ this = mkEnvironmentWith env0-extensions rec {
     commands.list = {
       desc = "Show available varsets.";
       hook = ''echo ${show-attrs-with-sep (n: _: n) " " varsets}'';
-    };
-    commands.show = {
-      desc = "Show the value assignments of a varset.";
-      opts = with opt-def; {inherit current changed names-only;};
-      args = if varsets!={} then [setsarg] else [];
-      hook = ''
-        ${sets-case
-           ( n: s : ''declare -A vars=${ show-attrs-as-assocArray s }'')
-           varsets }
-        envth array-vars show ${pass-flags} vars
-        '';
     };
   }; */
 
@@ -554,7 +552,7 @@ this = mkEnvironmentWith env0-extensions rec {
               #  args+=( "$(declare -p $i)
               #" )
                 val="$(declare -p $i)"
-                val="''${val/declare?( -x) $i=/}"
+                val="''${val/declare -? $i=/}"
                 args+=( "declare -xg $i=$val
               " )
               done
