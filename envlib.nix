@@ -22,23 +22,25 @@ rec {
       else ""}
       '';
 
-  mk-envlib-doc = name: lib-file: runCommand "${name}-envlib-doc" {} ''
-    mkdir -p $out/doc/html
-    ${pandoc}/bin/pandoc -f markdown -s --metadata pagetitle=${name} \
-      <(  cat <( echo '```bash' ) \
-      ${lib-file}  \
-      <( echo '```' ) ) \
-      -o $out/doc/html/${name}-envlib.html
-    '';
-
-  mk-envlib-sh = name: lib: writeTextFile  {
+  /* mkEnvLib = attrs@{ name,envlib?{},... }:
+    mk-envlib-sh name ((mkEnvLibExtras attrs) // envlib); */
+  /* mk-envlib-sh = name: lib: writeTextFile  {
     name = "${name}-envlib";
     text = mkShellFunctions lib;
     executable = true;
     destination = "/lib/${name}-envlib.sh";
+  }; */
+  mkEnvLib = attrs@{ name,envlib?{},... }: writeTextFile  {
+    name = "${name}-envlib";
+    text = mkShellFunctions envlib + (mkEnvUtilFcn attrs);
+    executable = true;
+    destination = "/lib/${name}-envlib.sh";
   };
 
-  mkLibsDocDir = name: libs: runCommand "${name}-importLibs" { inherit libs; } ''
+
+  # This function made markdown for the envlib sources. After move to
+  # metafun, this was taken out.h
+  /* mkLibsDocDir = name: libs: runCommand "${name}-importLibs" { inherit libs; } ''
     #NOTE: This command will fail (probably) for env names with spaces.
     mkdir -p $out/doc/html
     for l in $libs; do
@@ -50,9 +52,16 @@ rec {
     done
     ${tree}/bin/tree -H "$out/doc/html/" -L 1 --noreport --charset utf-8 \
       $out/doc/html/. > $out/doc/html/index.html
-    '';
-
-  mkEnvLibExtras = attrs@{ name, envlib ? {}, ENVTH_RESOURCES ? ""
+    ''; */
+  /* mk-envlib-doc = name: lib-file: runCommand "${name}-envlib-doc" {} ''
+    mkdir -p $out/doc/html
+    ${pandoc}/bin/pandoc -f markdown -s --metadata pagetitle=${name} \
+      <(  cat <( echo '```bash' ) \
+      ${lib-file}  \
+      <( echo '```' ) ) \
+      -o $out/doc/html/${name}-envlib.html
+    ''; */
+  /* mkEnvLibExtras = attrs@{ name, envlib ? {}, ENVTH_RESOURCES ? ""
                          , env-varsets?{}, ...}:
     let
       attrs' = filterAttrs (n: v: all (x: n != x)
@@ -64,12 +73,33 @@ rec {
         {fname = "envfun-${name}"; inherit lib extras envth;}
         attrs;
       };
-  in extras;
+  in extras; */
+  mkEnvUtilFcn = attrs@{ name, envlib ? {}, ENVTH_RESOURCES ? ""
+                         , env-varsets?{}, ...}:
+    let
+      fcn-name = "envfun-${name}";
+      comp-fcn-name = "_${fcn-name}-complete";
+      #cmd-name = "envcmd-${name}";
+      #comp-name = "_${cmd-name}-complete";
+      cmd-name = fcn-name;
+      comp-name = comp-fcn-name;
+      def = envUtilDef attrs;
+      cmd = writeScriptBin cmd-name (metafun.mkCommand cmd-name def);
+      comp = writeScriptBin comp-name (metafun.mkCommandCompletion comp-name def);
+      in ''
+          ${fcn-name}(){
+            source ${cmd}/bin/${cmd-name} "$@"
+          }
+          ${comp-fcn-name}(){
+            source ${comp}/bin/${comp-name} "$@"
+          }
+          export -f ${fcn-name}
+          export -f ${comp-fcn-name}
+          complete -F ${comp-fcn-name} ${fcn-name}
+          '';
 
-  mkEnvLibText = attrs@{ envlib?{},...} :
-    mkShellFunctions ((mkEnvLibExtras attrs) // envlib);
-  mkEnvLib = attrs@{ name,envlib?{},... }:
-    mk-envlib-sh name ((mkEnvLibExtras attrs) // envlib);
+  envUtilDef = attrs@{ name, ... }: import ./env-metafun.nix
+    {fname = "envfun-${name}"; inherit lib envth;} attrs;
 
   show-caller = env-caller: if isAttrs env-caller then
       show-vars-default env-caller
@@ -97,19 +127,14 @@ rec {
     let
       import_libs_out = uniquer ( import_libs ++ [envlib] );
       envlib = mkEnvLib (super );
-      /* lib_doc = mkShellLib-doc name envlib; */
-      sourceLib = l:
-      ''source ${l}/lib/*
+      sourceLib = l: ''
+        source ${l}/lib/*
         '';
-      /* envlib-doc = if null == attrByPath ["env-opts" "envlib-doc"] null super then
-         {}
-       else
-         { libs_doc = mkLibsDocDir name import_libs_out; }; */
     in {
+      inherit envlib;
       env-varsets = if isNull env-varsets then
         null
         else {__toString=_:null;} // env-varsets;
-      inherit envlib;
       import_libs = import_libs_out;
       importLibsHook = concatMapStrings sourceLib import_libs_out;
       passthru = super.passthru // {  inherit envlib;

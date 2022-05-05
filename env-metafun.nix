@@ -1,4 +1,4 @@
-{fname,lib,extras,envth}:
+{fname,lib,envth}:
 with builtins; with lib; with envth.lib.resources;
 
 attrs_@{name,env-varsets?{},envlib?{},ENVTH_RESOURCES?no-resources
@@ -99,7 +99,9 @@ in
             #declare -p dryrun copyto
 
             declare -A rsrcs
-            envfun-${name} resource --array=rsrcs
+            #
+            # envfun-${name} resource --array=rsrcs
+            ${fname} resource --array=rsrcs
             if [[ $# == 0 ]]; then
               for resource in ''${!rsrcs[@]}; do
                 envth copy-store $dryrun $copyto ''${rsrcs[$resource]}
@@ -157,7 +159,7 @@ in
     desc = "Show functions exported by this environment.";
     hook = ''
       declare sep=" "
-      echo "${concatStringsSep "\${sep}" (attrNames (extras // envlib ))}"
+      echo "${concatStringsSep "\${sep}" ([fname] ++ (attrNames envlib) )}"
       '';
   };
   commands.imports = {
