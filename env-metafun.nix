@@ -21,7 +21,7 @@ let
       '';
   attrs-pre = filterAttrs isNotEnvthVar attrs_.passthru.attrs-pre;
   envs-imported = attrByPath ["passthru" "envs-imported"] [] attrs_;
-  /* attrs-resources = filterAttrs (_: isEnvSrc) attrs_; */
+  envs-added = attrValues (attrByPath ["passthru" "envs-added"] {} attrs_);
   attrs-resources = ENVTH_RESOURCES.resources;
   attrs-resources-twopaths =
     let esc = x: x; in
@@ -100,7 +100,7 @@ in
 
             declare -A rsrcs
             #
-            # envfun-${name} resource --array=rsrcs
+            # ${fname} resource --array=rsrcs
             ${fname} resource --array=rsrcs
             if [[ $# == 0 ]]; then
               for resource in ''${!rsrcs[@]}; do
@@ -166,6 +166,31 @@ in
     desc = "Show environments imported by this environment.";
     hook = ''
       echo "${concatStringsSep " " (map (i: i.name) envs-imported)}"
+      '';
+  };
+
+  commands.envs-added = {
+    desc = ''Show environments added through attribute "env-addEnv".'';
+    commands.list.desc = "List added environments.";
+    commands.list.hook = ''
+      echo "${concatStringsSep " " (map (i: i.name) envs-added)}"
+      '';
+    commands.show.desc = "Show the nix store location of added environment.";
+    commands.show.args = [ { name="env"; 
+                             completion.hint = "<env>";
+                             completion.hook = ''${fname} envs-added list'';
+                           }
+                         ];
+    commands.show.hook = let 
+        makeCase = env: ''
+          ${env.name} ) 
+            echo ${env.outPath}
+            ;;
+          '';
+      in ''
+      case $1 in
+      ${concatMapStrings makeCase envs-added}
+      esac
       '';
   };
 

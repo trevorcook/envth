@@ -25,6 +25,9 @@ let
     /* env.desc = "Use named environment instead of current one.";
     env.set = "envname";
     env.arg = true; */
+
+
+
     env.desc = "Use set from named environment.";
     env.set = "envname";
     env.arg.name="env"; #or the option name (if opt argument).
@@ -85,6 +88,19 @@ this = mkEnvironmentWith env0-extensions rec {
       commands = {
 
 
+        /* caller = {
+          desc = ''Make a nix file that calls the definition using the ENVTH_CALLER and ENVTH_CALLATTRS. This is basically, an ad hoc `shell.nix` that calls the definition with callPackage.'';
+          opts = with opt-def; {
+            file = file // {
+              desc = ''Call "file" instead of environment definition.'';};
+          };
+          hook = ''
+            declare fileinput=''${fileinput:=$(envth home-dir)/$definition}
+            echo "import $ENVTH_CALLER $ENVTH_CALLATTRS { definition = $fileinput; }" \
+               > $ENVTH_TEMP/env-call-$(basename $fileinput)
+            echo $ENVTH_TEMP/env-call-$(basename $fileinput)
+            '';
+          }; */
         caller = {
           desc = ''Make a nix file that calls the definition using the ENVTH_CALLER and ENVTH_CALLATTRS. This is basically, an ad hoc `shell.nix` that calls the definition with callPackage.'';
           opts = with opt-def; {
@@ -98,6 +114,24 @@ this = mkEnvironmentWith env0-extensions rec {
             echo $ENVTH_TEMP/env-call-$(basename $fileinput)
             '';
           };
+
+        enter = {
+          desc = ''Replace current environment with an added environment.
+                Environments can be added with the "env-addEnvs" attribute. 
+      Doing so brings added environments into scope whenever the parent environmnet is in scope. Additionally, added envs can be entered from the current environment via "envth enter <env>" or during initial entry with "nix develop .#env".
+'';
+          args = [ { name="env"; 
+                     completion.hint = "<env>";
+                     completion.hook = ''envfun-$name envs-added list'';
+                    } ];
+          hook = ''
+            if [[ $ENVTH_ENTRY == nix-shell ]]; then
+              exec nix develop $ENVTH_BUILDDIR#$1
+            else # is binary
+              eval exec $(envfun-$name envs-added show $1)/bin/enter-env-$1
+            fi
+            '';
+        };
 
         build = {
           desc = ''Build the environment output--a script that enters an intertactive session based on the nix-shell of an enviornment's definition.'';
@@ -119,7 +153,7 @@ this = mkEnvironmentWith env0-extensions rec {
               nix-build "$@" -o "$ENVTH_BUILDDIR/.envth/$result" \
                 "$called" \
                 &> "$ENVTH_BUILDDIR/.envth/build.log"
-              [[ $result ==  result ]] && \
+              [[ $result == result ]] && \
                 ENVTH_OUT="$( readlink $ENVTH_BUILDDIR/.envth/$result )"
                 out=$ENVTH_OUT
             fi'';
