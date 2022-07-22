@@ -56,7 +56,7 @@ this = mkEnvironmentWith env0-extensions rec {
   name = "env0";
   definition = ./env0.nix;
   shellHook = ''
-    show_vars PRE
+    # show_vars PRE
     if [[ $out != $ENVTH_OUT ]]; then
       # If binary, ENVTH_OUT will match out.
       # If shell, will not match or be unset.
@@ -71,7 +71,7 @@ this = mkEnvironmentWith env0-extensions rec {
     #export ENVTH_TEMP=''${ENVTH_TEMP:=$(mktemp -d "''${TMPDIR:-/tmp}/ENVTH_$name.XXX")}
     ENVTH_TEMP="$(mktemp -d "''${TMPDIR:-/tmp}/ENVTH_$name.XXX")"
     trap 'rm -r $ENVTH_TEMP' EXIT
-    show_vars POST
+    # show_vars POST
     '';
   /* ENVTH_ENV0 = this; */
   passthru = rec {
@@ -91,10 +91,10 @@ this = mkEnvironmentWith env0-extensions rec {
   };
   envlib = {
 
-    show_vars = ''
-      echo "-- $@ ------" 
-      declare -p ENVTH_BUILDDIR ENVTH_BUILDDIR_ out ENVTH_OUT ENVTH_ENTRY PWD
-      '';
+    # show_vars = ''
+    #   echo "-- $@ ------" 
+    #   declare -p ENVTH_BUILDDIR ENVTH_BUILDDIR_ out ENVTH_OUT ENVTH_ENTRY PWD
+    #   '';
 
     envth = {
       desc = "envth utilities.";
