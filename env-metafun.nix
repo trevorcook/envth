@@ -21,7 +21,7 @@ let
       '';
   attrs-pre = filterAttrs isNotEnvthVar attrs_.passthru.attrs-pre;
   envs-imported = attrByPath ["passthru" "envs-imported"] [] attrs_;
-  envs-added = attrValues (attrByPath ["passthru" "envs-added"] {} attrs_);
+  envs-xp = attrValues (attrByPath ["passthru" "envs-added"] {} attrs_);
   attrs-resources = ENVTH_RESOURCES.resources;
   attrs-resources-twopaths =
     let esc = x: x; in
@@ -169,16 +169,16 @@ in
       '';
   };
 
-  commands.envs-added = {
+  commands.envs = {
     desc = ''Show environments added through attribute "env-addEnv".'';
     commands.list.desc = "List added environments.";
     commands.list.hook = ''
-      echo "${concatStringsSep " " (map (i: i.name) envs-added)}"
+      echo "${concatStringsSep " " (map (i: i.name) envs-xp)}"
       '';
     commands.show.desc = "Show the nix store location of added environment.";
     commands.show.args = [ { name="env"; 
                              completion.hint = "<env>";
-                             completion.hook = ''${fname} envs-added list'';
+                             completion.hook = ''${fname} envs list'';
                            }
                          ];
     commands.show.hook = let 
@@ -189,7 +189,7 @@ in
           '';
       in ''
       case $1 in
-      ${concatMapStrings makeCase envs-added}
+      ${concatMapStrings makeCase envs-xp}
       esac
       '';
   };

@@ -6,7 +6,7 @@ with envth.lib.inits;
 with envth.lib.builder;
 with envth.lib.imports;
 with envth.lib.add-envs;
-with envth.lib.caller;
+# with envth.lib.caller;
 rec
 {
   # Each extension represents a step of processing. Each extension has a type,
@@ -17,8 +17,9 @@ rec
   # attributes. `attrs` are the attributes added/modified in the extension.
   env-extensions = [ (save-attrs-as "attrs-pre")
                      set-default-build-dir
+                     add-passthru-pkgs
                      gather-resources
-                     add-caller
+                    #  add-caller
                      add-envs
                      add-imports
                      make-builder

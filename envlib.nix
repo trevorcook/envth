@@ -101,9 +101,9 @@ rec {
   envUtilDef = attrs@{ name, ... }: import ./env-metafun.nix
     {fname = "envfun-${name}"; inherit lib envth;} attrs;
 
-  show-caller = env-caller: if isAttrs env-caller then
-      show-vars-default env-caller
-    else toString env-caller;
+  # show-caller = env-caller: if isAttrs env-caller then
+  #     show-vars-default env-caller
+  #   else toString env-caller;
 
   show-attrs-with-sep = f : sep: attrs:
     concatStringsSep sep (mapAttrsToList f attrs);

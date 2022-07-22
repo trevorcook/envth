@@ -19,14 +19,14 @@ let
     lib = rec {
       # envth modules.
       env0 = callPackage ./env0.nix { inherit envth; };
-      inits = callPackage ./inits.nix { inherit envth; };
+      inits = callPackage ./inits.nix { inherit envth; pkgs = self; };
       add-envs = callPackage ./add-envs.nix { inherit envth; };
       imports = callPackage ./imports.nix { inherit envth;};
       builder = callPackage ./build.nix { inherit envth; };
       resources = callPackage ./resources.nix {};
       envlib = callPackage ./envlib.nix { inherit metafun; };
       make-environment = callPackage ./make-environment.nix { inherit envth; };
-      caller = callPackage ./caller.nix { };
+      # caller = callPackage ./caller.nix { };
       # Basic utilities used in some modules.
       callEnv = envth: x:
         if builtins.typeOf x == "path" then callPackage x

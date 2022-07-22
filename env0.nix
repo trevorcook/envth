@@ -1,6 +1,11 @@
 { envth, lib, callPackage}: with lib;
 with envth.lib.make-environment;
 let
+  arg-def = {
+    envs.name="env"; 
+    envs.completion.hint = "<env>";
+    envs.completion.hook = ''echo $name $(envfun-$name envs list)'';
+    };
   # TODO: This duplicates env-metafun and shoudl be consolidated
   opt-def = {
     current.desc="Current values of keys as environment variables.";
@@ -51,12 +56,13 @@ this = mkEnvironmentWith env0-extensions rec {
   name = "env0";
   definition = ./env0.nix;
   shellHook = ''
+    show_vars PRE
     if [[ $out != $ENVTH_OUT ]]; then
       # If binary, ENVTH_OUT will match out.
       # If shell, will not match or be unset.
       ENVTH_ENTRY=nix-shell
-      ENVTH_OUT=$out
-      # envth build >> /dev/null &
+      ENVTH_BUILDDIR=''${ENVTH_BUILDDIR_:-$PWD} 
+      out=''${ENVTH_OUT:=$ENVTH_BUILDDIR/.envth/$name}
     else
       envth home-dir >> /dev/null
     fi
@@ -65,23 +71,30 @@ this = mkEnvironmentWith env0-extensions rec {
     #export ENVTH_TEMP=''${ENVTH_TEMP:=$(mktemp -d "''${TMPDIR:-/tmp}/ENVTH_$name.XXX")}
     ENVTH_TEMP="$(mktemp -d "''${TMPDIR:-/tmp}/ENVTH_$name.XXX")"
     trap 'rm -r $ENVTH_TEMP' EXIT
+    show_vars POST
     '';
   /* ENVTH_ENV0 = this; */
   passthru = rec {
     attrs-pre = {
       inherit name definition;
       ENVTH_BUILDDIR = "";
+      ENVTH_BUILDDIR_ = "";
       ENVTH_RESOURCES = "";
       ENVTH_ENTRY = "";
       ENVTH_DRV = "";
       ENVTH_OUT = "";
-      ENVTH_CALLER = "";
+      # ENVTH_CALLER = "";
       ENVTH_NOCLEANUP = "";
       ENVTH_TEMP = "";
       ENVTH_SSH_EXPORTS = "";
     };
   };
   envlib = {
+
+    show_vars = ''
+      echo "-- $@ ------" 
+      declare -p ENVTH_BUILDDIR ENVTH_BUILDDIR_ out ENVTH_OUT ENVTH_ENTRY PWD
+      '';
 
     envth = {
       desc = "envth utilities.";
@@ -101,60 +114,100 @@ this = mkEnvironmentWith env0-extensions rec {
             echo $ENVTH_TEMP/env-call-$(basename $fileinput)
             '';
           }; */
-        caller = {
-          desc = ''Make a nix file that calls the definition using the ENVTH_CALLER and ENVTH_CALLATTRS. This is basically, an ad hoc `shell.nix` that calls the definition with callPackage.'';
-          opts = with opt-def; {
-            file = file // {
-              desc = ''Call "file" instead of environment definition.'';};
-          };
-          hook = ''
-            declare fileinput=''${fileinput:=$(envth home-dir)/$definition}
-            echo "import $ENVTH_CALLER $ENVTH_CALLATTRS { definition = $fileinput; }" \
-               > $ENVTH_TEMP/env-call-$(basename $fileinput)
-            echo $ENVTH_TEMP/env-call-$(basename $fileinput)
-            '';
-          };
 
         enter = {
-          desc = ''Replace current environment with an added environment.
-                Environments can be added with the "env-addEnvs" attribute. 
-      Doing so brings added environments into scope whenever the parent environmnet is in scope. Additionally, added envs can be entered from the current environment via "envth enter <env>" or during initial entry with "nix develop .#env".
-'';
-          args = [ { name="env"; 
-                     completion.hint = "<env>";
-                     completion.hook = ''envfun-$name envs-added list'';
-                    } ];
+          desc = ''
+            Replace current environment with an in-scope environment.
+              Environments can be added to scope with the "env-addEnvs" attribute and will allow entering from the current environment via this command or with "nix develop .#env".
+            '';
+          args = [ arg-def.envs ];
           hook = ''
             if [[ $ENVTH_ENTRY == nix-shell ]]; then
-              exec nix develop $ENVTH_BUILDDIR#$1
-            else # is binary
-              eval exec $(envfun-$name envs-added show $1)/bin/enter-env-$1
+              ENVTH_OUT=""
+              declare -xg ENVTH_BUILDDIR_="$ENVTH_BUILDDIR"
+              exec nix develop "$ENVTH_BUILDDIR/"#"$1"
+            else
+              declare env
+              if [[ $1 == $name ]]; then
+                env="$ENVTH_OUT"
+              else
+                env="$(envfun-$name envs show $1)"
+              fi
+              exec $env/bin/enter-env-$1
             fi
+            '';
+        };
+        reload = {
+          desc = ''Reload current environment. Will update enviornment definition if entered from nix-shell or reenter current shell if binary based.'';
+          # opts = {
+          #   args.desc = ''Pass arguments to nix-shell based reloads.'';
+          #   args.set = "args";
+          #   args.arg = true;
+          #   lib.desc = ''Reload the latest source without recompiling the whole environment.'';
+          #   lib.set = "libonly";
+          #   here.desc = ''Re-enter the environment in current directory using the file pointed to by `definition`.'';
+          #   here.hook = ''unset ENVTH_ENTRY
+          #                 ENVTH_BUILDDIR="$PWD"
+          #               '';
+          # };
+          hook = ''
+            envth enter "$name"
+
+            # declare flags=''${libonly:+--lib}
+            # if [[ -z $args ]]; then
+            #   cmds="$@"
+            #   [[ -z $cmds ]] && cmds=":" ;
+            #   cmds="$cmds ; return"
+            #   [[ $ENVTH_ENTRY == bin ]] || cmds="--command \"$cmds\""
+            #   envth reload $flags --args "$cmds"
+            # else
+            #   if [[ $libonly == true ]]; then
+            #     envth build -A envlib-file
+            #     source $(envth home-dir)/.envth/envlib-file
+            #   else
+            #     envth build
+            #   fi
+            #   if [[ $ENVTH_ENTRY == bin ]]; then
+            #     declare pth=$(envth entry-path)
+            #     envth cleanup
+            #     exec $pth $args
+            #   else
+            #     envth cleanup
+            #     ENVTH_OUT=""
+            #     declare -gx ENVTH_BUILDDIR_="$ENVTH_BUILDDIR"
+            #     exec nix develop "$ENVTH_BUILDDIR"/.#"$name"
+            #   fi
+            # fi
             '';
         };
 
         build = {
-          desc = ''Build the environment output--a script that enters an intertactive session based on the nix-shell of an enviornment's definition.'';
+          desc = ''Build the environment output--a script that enters an intertactive session based on the nix-shell of an enviornment's definition.
+            Note, this will build the most current defintion, which may differ from currently loaded defintion.
+            '';
           opts = rec {
-            A = attrs;
-            attrs.desc = "Build an attribute within the definition.";
-            attrs.set = "attropt";
-            attrs.arg = true;
+            # A = attrs;
+            # attrs.desc = "Build an attribute within the definition.";
+            # attrs.set = "attropt";
+            # attrs.arg = true;
+            env.desc = "Build the requested environment.";
+            env.set = "envopt";
+            env.arg = arg-def.envs;
           };
           hook = ''
             if [[ $ENVTH_ENTRY != bin ]]; then
               mkdir -p $(envth home-dir)/.envth
-              # Make the expression for a callPackage to the current definition.
-              local called=$(envth caller)
-              # Check if building an attribute, outlink becomes attribute name.
-              declare result=''${attropt:=result}
+              # # Check if building an attribute, outlink becomes attribute name.
+              # declare result=''${attropt:=result}
+              # Check which envrionment to build
+              declare envopt=''${envopt:=$name}
               # Do build
               echo "building... ($ENVTH_BUILDDIR/.envth/build.log)"
-              nix-build "$@" -o "$ENVTH_BUILDDIR/.envth/$result" \
-                "$called" \
+              nix build -o "$ENVTH_BUILDDIR/.envth/$envopt" \
+                $ENVTH_BUILDDIR#$name \
                 &> "$ENVTH_BUILDDIR/.envth/build.log"
               [[ $result == result ]] && \
-                ENVTH_OUT="$( readlink $ENVTH_BUILDDIR/.envth/$result )"
+                ENVTH_OUT="$( readlink $ENVTH_BUILDDIR/.envth/$envopt )"
                 out=$ENVTH_OUT
             fi'';
         };
@@ -169,10 +222,10 @@ this = mkEnvironmentWith env0-extensions rec {
                 [[ -z \$PS1 ]] || [[ -n \$ENVTH_ENTRY ]] || exec enter-env-$name \"source ~/.bashrc ; envth set-PS1; return\" \n'';
             in ''
             if [[ $ENVTH_ENTRY != bin ]]; then
-              nix-env -if $(envth caller)
-            else
-              nix-env -i $ENVTH_OUT
+              envth build
             fi
+            nix profile install $ENVTH_OUT
+            
             if [[ $bashrc == true ]]; then
             sed -i "1s:^:${guarded-exec}:" ~/.bashrc
             #echo "install, $bashrc"
@@ -183,9 +236,10 @@ this = mkEnvironmentWith env0-extensions rec {
           desc = "Show the base directory for current environment.";
           hook = ''
           if [[ -n $NIX_STORE && -z ''${ENVTH_BUILDDIR##$NIX_STORE*} ]]; then
-            ENVTH_BUILDDIR=$PWD
+            #ENVTH_BUILDDIR=$PWD
+            :
           else
-            ENVTH_BUILDDIR=''${ENVTH_BUILDDIR:=$PWD}
+            ENVTH_BUILDDIR=''${ENVTH_BUILDDIR_:=$PWD}
           fi
           echo $ENVTH_BUILDDIR;
           '';
@@ -194,9 +248,14 @@ this = mkEnvironmentWith env0-extensions rec {
         cleanup = {
           desc = "Remove environment variables from environment";
           hook = ''
-            [[ -n ENVTH_NOCLEANUP ]] && { return;}
-            unset ENVTH_BUILDDIR ENVTH_RESOURCES ENVTH_ENTRY ENVTH_DRV \
-                  ENVTH_OUT ENVTH_CALLER
+            [[ -n $ENVTH_NOCLEANUP ]] && { return;}
+            declare -gx ENVTH_BUILDDIR_="$ENVTH_BUILDDIR"
+            # unset ENVTH_BUILDDIR ENVTH_RESOURCES ENVTH_ENTRY ENVTH_DRV \
+            #       ENVTH_OUT 
+            unset ENVTH_RESOURCES ENVTH_ENTRY ENVTH_DRV \
+                  ENVTH_OUT
+            show_vars POST CLEAN
+
             #Dont remove ENVTH_TEMP, that will be reused in reload.'';
           };
 
@@ -207,54 +266,25 @@ this = mkEnvironmentWith env0-extensions rec {
             echo -n "$ENVTH_OUT/bin/enter-env-$name"
             '';
           };
-        reload = {
-          desc = ''Reload environment, passing inputs as commands to be run upon reentry. Will update enviornment definition if entered from nix-shell or reenter current shell if binary based.'';
-          opts = {
-            args.desc = ''Pass arguments to nix-shell based reloads.'';
-            args.set = "args";
-            args.arg = true;
-            lib.desc = ''Reload the latest source without recompiling the whole environment.'';
-            lib.set = "libonly";
-            here.desc = ''Re-enter the environment in current directory using the file pointed to by `definition`.'';
-            here.hook = ''unset ENVTH_ENTRY
-                          ENVTH_BUILDDIR="$PWD"
-                        '';
-          };
-          hook = ''
-            declare flags=''${libonly:+--lib}
-            if [[ -z $args ]]; then
-              cmds="$@"
-              [[ -z $cmds ]] && cmds=return ;
-              cmds="$cmds ; return"
-              [[ $ENVTH_ENTRY == bin ]] || cmds="--command \"$cmds\""
-              envth reload $flags --args "$cmds"
-            else
-              if [[ $libonly == true ]]; then
-                envth build -A envlib-file
-                source $(envth home-dir)/.envth/envlib-file
-              else
-                envth build
-              fi
-              if [[ $ENVTH_ENTRY == bin ]]; then
-                declare pth=$(envth entry-path)
-                envth cleanup
-                exec $pth $args
-              else
-                envth cleanup
-                eval exec nix-shell $args $(envth caller)
-              fi
-            fi
-            '';
-        };
 
         repl = {
           desc = "A `nix repl` session with the current definition loaded.";
+          opts.make-repl-file.desc = "Make a temporary repl file to pre-load environment in repl.";
+          opts.make-repl-file.exit = true;
+          opts.make-repl-file.hook = ''
+            cat >$ENVTH_TEMP/repl.nix <<EOF
+            let
+              flake = builtins.getFlake (toString $ENVTH_BUILDDIR/.);
+              env = flake.outputs.devShells.\''${builtins.currentSystem}.default;
+              passthru = { inherit flake; } // env.passthru;
+            in
+              env // passthru
+            EOF
+            '';
+
           hook = ''
-          if [[ $ENVTH_ENTRY == bin ]]; then
-            nix repl $(envth caller --file "$definition_NIXSTORE")
-          else
-            nix repl $(envth caller)
-          fi
+            [[ ! -e $ENVTH_TEMP/repl.nix ]] && envth repl --make-repl-file
+            nix repl $ENVTH_TEMP/repl.nix
           '';
         };
 
