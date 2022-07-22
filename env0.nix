@@ -278,7 +278,7 @@ this = mkEnvironmentWith env0-extensions rec {
               env = flake.outputs.devShells.\''${builtins.currentSystem}.default;
               passthru = { inherit flake; } // env.passthru;
             in
-              env // passthru
+              env // { inherit passthru; }
             EOF
             '';
 
