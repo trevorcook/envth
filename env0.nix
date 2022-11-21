@@ -263,7 +263,10 @@ this = mkEnvironmentWith env0-extensions rec {
           desc = ''Echo the enter-env-$name location, of current enviornment, building if necessary.'';
           hook = ''
             [[ -e $ENVTH_OUT ]] || envth build &> /dev/null
-            echo -n "$ENVTH_OUT/bin/enter-env-$name"
+            # The below acts as "realpath $ENVTH_OUT" but hopefully more portable.
+            ( cd -P $(dirname $ENVTH_OUT/bin/enter-env-$name)
+              printf '%s\n' "$(pwd -P)/enter-env-$name
+            )
             '';
           };
 
