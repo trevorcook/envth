@@ -265,7 +265,7 @@ this = mkEnvironmentWith env0-extensions rec {
             [[ -e $ENVTH_OUT ]] || envth build &> /dev/null
             # The below acts as "realpath $ENVTH_OUT" but hopefully more portable.
             ( cd -P $(dirname $ENVTH_OUT/bin/enter-env-$name)
-              printf '%s\n' "$(pwd -P)/enter-env-$name
+              printf '%s\n' "$(pwd -P)/enter-env-$name"
             )
             '';
           };
