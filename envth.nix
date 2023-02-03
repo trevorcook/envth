@@ -26,6 +26,7 @@ let
       resources = callPackage ./resources.nix {};
       envlib = callPackage ./envlib.nix { inherit metafun; };
       make-environment = callPackage ./make-environment.nix { inherit envth; };
+      make-envfun = import ./env-metafun.nix;
       # caller = callPackage ./caller.nix { };
       # Basic utilities used in some modules.
       callEnv = envth: x:

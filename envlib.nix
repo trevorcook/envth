@@ -5,31 +5,27 @@ with lib;
 let # unique list, keeping last instances in list.
   uniquer = ls: reverseList (unique (reverseList ls)); in
 rec {
-  mkShellFunctions = attrs :
-    concatStrings (mapAttrsToList mkShellFunction attrs);
-  mkShellFunction = with metafun; name: value: ''
-      ${name}(){
-      ${mkCommand name value}
-      }
-      export -f ${name}
-      ${ if isAttrs value then ''
-      _${name}-complete(){
-      ${mkCommandCompletion name value}
-      }
-      export -f _${name}-complete
-      complete -F _${name}-complete ${name}
-      ''
-      else ""}
-      '';
 
-  /* mkEnvLib = attrs@{ name,envlib?{},... }:
-    mk-envlib-sh name ((mkEnvLibExtras attrs) // envlib); */
-  /* mk-envlib-sh = name: lib: writeTextFile  {
-    name = "${name}-envlib";
-    text = mkShellFunctions lib;
-    executable = true;
-    destination = "/lib/${name}-envlib.sh";
-  }; */
+  # make the environment functionality assiciated with the `envlib` attribute.
+  make-envlib = self: super@{import_libs ? [], name, env-varsets?null,...}:
+    let
+      import_libs_out = uniquer ( import_libs ++ [envlib] );
+      envlib = mkEnvLib (super );
+      sourceLib = l: ''
+        source ${l}/lib/*
+        '';
+    in {
+      inherit envlib;
+      env-varsets = if isNull env-varsets then
+        null
+        else {__toString=_:null;} // env-varsets;
+      import_libs = import_libs_out;
+      importLibsHook = concatMapStrings sourceLib import_libs_out;
+      passthru = super.passthru // {  inherit envlib;
+                                      };
+    } ;
+
+  # The text file associated with the envlib function definitions
   mkEnvLib = attrs@{ name,envlib?{},... }: writeTextFile  {
     name = "${name}-envlib";
     text = mkShellFunctions envlib + (mkEnvUtilFcn attrs);
@@ -37,50 +33,11 @@ rec {
     destination = "/lib/${name}-envlib.sh";
   };
 
-
-  # This function made markdown for the envlib sources. After move to
-  # metafun, this was taken out.h
-  /* mkLibsDocDir = name: libs: runCommand "${name}-importLibs" { inherit libs; } ''
-    #NOTE: This command will fail (probably) for env names with spaces.
-    mkdir -p $out/doc/html
-    for l in $libs; do
-      for f in $( ls $l/doc/html/. ); do
-        if [[ "$f" != index.html ]]; then
-          ln -s "$l/doc/html/$f" "$out/doc/html/$f"
-        fi
-      done
-    done
-    ${tree}/bin/tree -H "$out/doc/html/" -L 1 --noreport --charset utf-8 \
-      $out/doc/html/. > $out/doc/html/index.html
-    ''; */
-  /* mk-envlib-doc = name: lib-file: runCommand "${name}-envlib-doc" {} ''
-    mkdir -p $out/doc/html
-    ${pandoc}/bin/pandoc -f markdown -s --metadata pagetitle=${name} \
-      <(  cat <( echo '```bash' ) \
-      ${lib-file}  \
-      <( echo '```' ) ) \
-      -o $out/doc/html/${name}-envlib.html
-    ''; */
-  /* mkEnvLibExtras = attrs@{ name, envlib ? {}, ENVTH_RESOURCES ? ""
-                         , env-varsets?{}, ...}:
-    let
-      attrs' = filterAttrs (n: v: all (x: n != x)
-                    ["envlib" "passthru" "ENVTH_DRV" "shellHook" "paths"
-                     "env-caller" "env-varsets"])
-                    attrs.passthru.attrs-pre;
-      extras = {
-      "envfun-${name}" = import ./env-metafun.nix
-        {fname = "envfun-${name}"; inherit lib extras envth;}
-        attrs;
-      };
-  in extras; */
   mkEnvUtilFcn = attrs@{ name, envlib ? {}, ENVTH_RESOURCES ? ""
                          , env-varsets?{}, ...}:
     let
       fcn-name = "envfun-${name}";
       comp-fcn-name = "_${fcn-name}-complete";
-      #cmd-name = "envcmd-${name}";
-      #comp-name = "_${cmd-name}-complete";
       cmd-name = fcn-name;
       comp-name = comp-fcn-name;
       def = envUtilDef attrs;
@@ -98,12 +55,28 @@ rec {
           complete -F ${comp-fcn-name} ${fcn-name}
           '';
 
-  envUtilDef = attrs@{ name, ... }: import ./env-metafun.nix
+  # The automatically generated "envfun-${name}" that reports some environment information.
+  envUtilDef = attrs@{ name, ... }: envth.lib.make-envfun
     {fname = "envfun-${name}"; inherit lib envth;} attrs;
 
-  # show-caller = env-caller: if isAttrs env-caller then
-  #     show-vars-default env-caller
-  #   else toString env-caller;
+
+
+  mkShellFunctions = attrs :
+    concatStrings (mapAttrsToList mkShellFunction attrs);
+  mkShellFunction = with metafun; name: value: ''
+      ${name}(){
+      ${mkCommand name value}
+      }
+      export -f ${name}
+      ${ if isAttrs value then ''
+      _${name}-complete(){
+      ${mkCommandCompletion name value}
+      }
+      export -f _${name}-complete
+      complete -F _${name}-complete ${name}
+      ''
+      else ""}
+      '';
 
   show-attrs-with-sep = f : sep: attrs:
     concatStringsSep sep (mapAttrsToList f attrs);
@@ -123,21 +96,4 @@ rec {
   show-vars-current = make-vars-string (n: v: "${n} = \${"+"${n}}");
   show-vars-default = make-vars-string (n: v: "${n} = ${builtins.toString v}");
 
-  make-envlib = self: super@{import_libs ? [], name, env-varsets?null,...}:
-    let
-      import_libs_out = uniquer ( import_libs ++ [envlib] );
-      envlib = mkEnvLib (super );
-      sourceLib = l: ''
-        source ${l}/lib/*
-        '';
-    in {
-      inherit envlib;
-      env-varsets = if isNull env-varsets then
-        null
-        else {__toString=_:null;} // env-varsets;
-      import_libs = import_libs_out;
-      importLibsHook = concatMapStrings sourceLib import_libs_out;
-      passthru = super.passthru // {  inherit envlib;
-                                      };
-    } ;
 }

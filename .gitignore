@@ -2,3 +2,4 @@ trash/
 result/
 .env-th/
 *prevHash
+flake.lock
