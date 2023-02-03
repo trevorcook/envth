@@ -62,7 +62,8 @@ this = mkEnvironmentWith env0-extensions rec {
       # If shell, will not match or be unset.
       ENVTH_ENTRY=nix-shell
       ENVTH_BUILDDIR=''${ENVTH_BUILDDIR_:-$PWD} 
-      out=''${ENVTH_OUT:=$ENVTH_BUILDDIR/.envth/$name}
+      ENVTH_OUT=''${ENVTH_BUILDDIR}/.envth/$name
+      out=''${ENVTH_OUT}
     else
       envth home-dir >> /dev/null
     fi
