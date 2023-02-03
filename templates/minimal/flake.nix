@@ -8,20 +8,7 @@
   outputs = { self, nixpkgs, flake-utils, envth }:
     let
       env-file = ./env.nix;
-      mkEnvs = system:
-        let
-          envth-overlay = envth.overlays.envth;
-          pkgs = nixpkgs.legacyPackages.${system}.extend envth-overlay;
-          this-env = pkgs.callPackage env-file { };
-          envs = this-env.envs-added // {
-            "${this-env.name}" = this-env;
-            default = this-env; };
-          mkApp = n: v: { type = "app"; 
-                          program = "${v}/bin/enter-env-${v.name}";};
-        in
-          { devShells = envs;
-            packages = envs;
-            apps = builtins.mapAttrs mkApp envs;
-          };
+      mkEnvs = envth.lib.make-flake-output self env-file;
     in flake-utils.lib.eachDefaultSystem mkEnvs;
 }
+
