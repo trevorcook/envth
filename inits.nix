@@ -23,9 +23,9 @@ rec {
 
   init-env = self:
     super@{ shellHook ? "", name, ... }:
-    {  shellHook = ''
-         ${if self ? importLibsHook then self.importLibsHook else ""}
-         ''
+    {  shellHook = 
+           (attrByPath ["importLibsHook"] "" self)
+         + (attrByPath ["importCmdsHook"] "" self)
          + envth.lib.env0.shellHook
          + shellHook ;
        userShellHook = shellHook;

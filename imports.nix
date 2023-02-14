@@ -88,7 +88,9 @@ rec
           name = keepstring;
           definition = keepstring;
           envlib = keepattr;
+          envcmd = keepattr; 
           import_libs = catlist "import_libs";
+          import_cmds = catlist "import_cmds";
           shellHook = keepstring;
           imports = catlist "imports";
           passthru = mergeattr "passthru";

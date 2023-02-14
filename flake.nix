@@ -1,9 +1,9 @@
-# The envth flake delivers an overlay, as opposed to an
-# individual package due to the need for envth environments
-# to supply their own package set.
 {
   description = "The 'envth' overlay and project templates.";
   outputs = { self }: { 
+    # The envth flake delivers an overlay, as opposed to an
+    # individual package due to the need for envth environments
+    # to supply their own package set.
     overlays.envth = self: super: { 
       envth = import ./envth.nix self super; 
       };
@@ -37,7 +37,7 @@
     };
     templates.default = self.templates.minimal;
 
-    # Creates the outputs for flake files for user defined environments. For use in user flakes. See templates for example use.
+    # Creates the outputs for flake files for user defined environments. See templates for example use.
     lib.make-flake-output = self: env-file: sys:
       let
         envth-overlay = self.inputs.envth.overlays.envth;

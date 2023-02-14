@@ -28,11 +28,24 @@ let
     mapAttrs (n: v: "${esc v.store} ${esc v.local}") attrs-resources;
   isNotEnvthVar = n: v: ! (isEnvthVar n v);
   isEnvthVar = n: v: hasPrefix "ENVTH" n || hasPrefix "env-" n ||
-      (any (n': n == n') ["envlib" "passthru" "shellHook" "paths"]) ;
+      (any (n': n == n') ["envlib" "envcmd" "passthru" "shellHook" "paths"]) ;
 
   show-attrs-as-assocArray = attrs:
     "( ${show-attrs-with-sep show-assocArray-value " " attrs} )";
-  show-assocArray-value = name: value: ''[${name}]="${toString value}"'';
+  tryToString = v: toString v;
+    # let 
+    #   typeIs = t: typeOf v == t;
+    #   isTypeOf = v: t: typeOf v == t
+    # # in if x.success then
+    # #     x.value
+    # #   else
+    # #     "<expr>";
+    # in if any typeIs ["int" "bool" "string" "path" "null" "float" ] then
+    #   toString v
+    # else if typeIs "list" 
+    #   else 
+    #     "<expr>";
+  show-assocArray-value = name: value: ''[${name}]="${tryToString value}"'';
 
   pass-flags = concatStringsSep " "
     ["\${current:+--current}"
@@ -124,7 +137,7 @@ in
         do-set = n: v:
           if isNull v then
             "unset ${n}"
-          else ''declare -xg ${n}="${toString v}"'';
+          else ''declare -xg ${n}="${tryToString v}"'';
       in
         sets-case (_: show-attrs-with-sep do-set "\n") varsets;
       };
