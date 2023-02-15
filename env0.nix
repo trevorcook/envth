@@ -101,21 +101,6 @@ this = mkEnvironmentWith env0-extensions rec {
       desc = "envth utilities.";
       commands = {
 
-
-        /* caller = {
-          desc = ''Make a nix file that calls the definition using the ENVTH_CALLER and ENVTH_CALLATTRS. This is basically, an ad hoc `shell.nix` that calls the definition with callPackage.'';
-          opts = with opt-def; {
-            file = file // {
-              desc = ''Call "file" instead of environment definition.'';};
-          };
-          hook = ''
-            declare fileinput=''${fileinput:=$(envth home-dir)/$definition}
-            echo "import $ENVTH_CALLER $ENVTH_CALLATTRS { definition = $fileinput; }" \
-               > $ENVTH_TEMP/env-call-$(basename $fileinput)
-            echo $ENVTH_TEMP/env-call-$(basename $fileinput)
-            '';
-          }; */
-
         enter = {
           desc = ''
             Replace current environment with an in-scope environment.
@@ -153,32 +138,6 @@ this = mkEnvironmentWith env0-extensions rec {
           # };
           hook = ''
             envth enter "$name"
-
-            # declare flags=''${libonly:+--lib}
-            # if [[ -z $args ]]; then
-            #   cmds="$@"
-            #   [[ -z $cmds ]] && cmds=":" ;
-            #   cmds="$cmds ; return"
-            #   [[ $ENVTH_ENTRY == bin ]] || cmds="--command \"$cmds\""
-            #   envth reload $flags --args "$cmds"
-            # else
-            #   if [[ $libonly == true ]]; then
-            #     envth build -A envlib-file
-            #     source $(envth home-dir)/.envth/envlib-file
-            #   else
-            #     envth build
-            #   fi
-            #   if [[ $ENVTH_ENTRY == bin ]]; then
-            #     declare pth=$(envth entry-path)
-            #     envth cleanup
-            #     exec $pth $args
-            #   else
-            #     envth cleanup
-            #     ENVTH_OUT=""
-            #     declare -gx ENVTH_BUILDDIR_="$ENVTH_BUILDDIR"
-            #     exec nix develop "$ENVTH_BUILDDIR"/.#"$name"
-            #   fi
-            # fi
             '';
         };
 
@@ -441,32 +400,6 @@ this = mkEnvironmentWith env0-extensions rec {
                 fi
               }
               '';
-              #declare -f testelem
-              #testelem(){
-              #  echo "elem \"$1\" \"$2\""? $(elem "$1" "$2")
-              #}
-              #declare -f _setsargs_list
-              #_setsargs_list(){
-              #  declare envs="$name $(envfun-$name imports)"
-              #  declare sets
-              #  for env in $envs; do
-              #    sets="$sets $(envfun-$env varsets list)"
-              #  done
-              #  nub "$sets"
-              #}
-              #declare -p envs
-              #declare envswsets
-              #for env in $envs; do
-              #  sets="$(envfun-$env varsets list)"
-              #  [[ -n $sets ]] && envswsets="$envswsets $env"
-              #done
-              #declare -p envswsets
-              #_setsargs_list
-              #testelem 1 "1 2"
-              #testelem 2 "1 2"
-              #testelem 3 "1 2"
-              #echo arg=$1
-
             args = [{ name="varset"; #or the option name (if opt argument).
                       desc="The varset attribute.";
                       completion.hint = "<arg:varset>";

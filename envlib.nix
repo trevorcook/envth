@@ -1,4 +1,4 @@
-{ envth, lib,  writeTextFile, symlinkJoin, pandoc, runCommand,
+{ envth, lib,  writeTextFile, symlinkJoin, runCommand,
   writeScriptBin, tree, metafun }:
 with builtins;
 with lib;
