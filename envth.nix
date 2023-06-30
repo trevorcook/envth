@@ -30,9 +30,8 @@ let
       # caller = callPackage ./caller.nix { };
       # Basic utilities used in some modules.
       callEnv = envth: x:
-        if builtins.typeOf x == "path" then callPackage x
-          { inherit envth; }
-        else x;
+        if builtins.typeOf x == "set" then x
+        else callPackage x { inherit envth; };
       diffAttrs = a: b: removeAttrs a (attrNames b);
       };
 
