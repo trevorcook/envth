@@ -1,6 +1,6 @@
 self: super: with self.lib;
 let
-  pyVersions = attrNames self.pythonIntrepreters;
+  pyVersions = attrNames self.pythonInterpreters;
   make-python-version = name:
     let python = (getAttr name self).withPackages (_:[]);
     in { inherit name;
