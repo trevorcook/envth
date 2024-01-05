@@ -16,7 +16,8 @@ rec {
       /* __toString = x:""; */
 
   add-passthru-pkgs = self: super: { 
-    passthru = super.passthru // {inherit pkgs;}; };
+    passthru = super.passthru // {inherit pkgs; };
+    };
 
   set-default-build-dir = self: super@{definition, ...}:
     diffAttrs { ENVTH_BUILDDIR = dirOf (toString definition);} super;

@@ -29,9 +29,10 @@ rec {
     let
       make-new = envth: env_:
         let env = callEnv envth env_;
-            envs = envth.envs // env.envs-added // (setAttrByPath [env.name] env);
-            /* envs = env.envs // (setAttrByPath [env.name] env); */
+            added = attrByPath ["envs-added"] {} env;
+            envs = envth.envs // added // (setAttrByPath [env.name] env);
         in envth.override { inherit envs; };
+        # in envth // {inherit envs;};
     in foldl' make-new envth ;
 
   # Overlay that adds `addEnvs` atribute to the `envth.envs` attribute of

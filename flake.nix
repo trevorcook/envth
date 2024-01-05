@@ -38,10 +38,10 @@
     templates.default = self.templates.minimal;
 
     # Creates the outputs for flake files for user defined environments. See templates for example use.
-    lib.make-flake-output = self: env-file: sys:
-      let
-        envth-overlay = self.inputs.envth.overlays.envth;
-        pkgs = self.inputs.nixpkgs.legacyPackages.${sys}.extend envth-overlay;
+    # FORMERLY: lib.make-flake-output = self: env-file: sys:
+    lib.envth-outputs = pkgs-flake: env-file: sys:
+      let 
+        pkgs = pkgs-flake.legacyPackages.${sys};
         env = pkgs.callPackage env-file {};
         envs = env.envs-added // {
           "${env.name}" = env;
@@ -54,7 +54,7 @@
       in {
           devShells = envs;
           packages = envs;
-          apps = builtins.mapAttrs mk-app envs;
-      } ;
-  };
+          apps = builtins.mapAttrs mk-app envs; } ;
+
+
 }

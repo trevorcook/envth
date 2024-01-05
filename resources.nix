@@ -17,24 +17,24 @@ rec {
      toPath = concatStringsSep "/";
      ref' = splitString "/" ref;
      path' = splitString "/" path;
-     mg0 = r: p:
+     merge0 = r: p:
        if p == [] then
-         mg1 r [] ["."]
+         merge1 r [] ["."]
        else if r == [] then
          toPath p
        else
          let r0 = take 1 r;
              p0 = take 1 p;
          in if r0 == p0 then
-              mg0 (drop 1 r) (drop 1 p)
+              merge0 (drop 1 r) (drop 1 p)
             else
-              mg1 r [] p;
-      mg1 = r: acc: p:
+              merge1 r [] p;
+      merge1 = r: acc: p:
        if r == [] then
         toPath (acc ++ p)
        else
-        mg1 (drop 1 r) ([".."] ++ acc) p;
-    in mg0 ref' path' ;
+        merge1 (drop 1 r) ([".."] ++ acc) p;
+    in merge0 ref' path' ;
 
   filter-resources = filterAttrs (_: v: isEnvSrc v);
   no-resources = { resources = {}; __toString = _: ""; };

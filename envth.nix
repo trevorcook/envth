@@ -9,9 +9,9 @@ let
   /* metafun_ = self.metafun; */
   envs-dir = import ./envs/default.nix self super;
 
-  envth0 = mkenvth {};
-  mkenvth =  makeOverridable (ovr@{envs ? envs-dir , metafun?metafun_ }:
-    # callPackage will use the original `envth`. To pick up the overridden
+  envth0 = makeOverridable mkenvth {};
+  mkenvth = ovr@{envs?envs-dir, metafun?metafun_ }:
+    # callPackages below will use the original `envth`. To pick up the overridden
     # definition, an updated `envth` must be supplied--hence the following.
     let envth = envth0.override ovr; in
     rec {
@@ -31,7 +31,9 @@ let
       # Basic utilities used in some modules.
       callEnv = envth: x:
         if builtins.typeOf x == "set" then x
-        else callPackage x { inherit envth; };
+        else 
+          let callPackage = (self.extend (_:_: { definition_in = toString x; inherit envth; })).callPackage; 
+          in callPackage x {};#inherit envth; };# definition=x;};
       diffAttrs = a: b: removeAttrs a (attrNames b);
       };
 
@@ -41,5 +43,5 @@ let
     mkSrc = lib.resources.mkSrc;
     mkEnvironment = lib.make-environment.mkEnvironment;
     path = ./.;
-  });
+  };
   in envth0

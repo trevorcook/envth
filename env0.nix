@@ -31,8 +31,6 @@ let
     env.set = "envname";
     env.arg = true; */
 
-
-
     env.desc = "Use set from named environment.";
     env.set = "envname";
     env.arg.name="env"; #or the option name (if opt argument).
@@ -56,7 +54,6 @@ this = mkEnvironmentWith env0-extensions rec {
   name = "env0";
   definition = ./env0.nix;
   shellHook = ''
-    # show_vars PRE
     if [[ $out != $ENVTH_OUT ]]; then
       # If binary, ENVTH_OUT will match out.
       # If shell, will not match or be unset.
@@ -72,7 +69,6 @@ this = mkEnvironmentWith env0-extensions rec {
     #export ENVTH_TEMP=''${ENVTH_TEMP:=$(mktemp -d "''${TMPDIR:-/tmp}/ENVTH_$name.XXX")}
     ENVTH_TEMP="$(mktemp -d "''${TMPDIR:-/tmp}/ENVTH_$name.XXX")"
     trap 'rm -r $ENVTH_TEMP' EXIT
-    # show_vars POST
     '';
   /* ENVTH_ENV0 = this; */
   passthru = rec {
@@ -92,11 +88,6 @@ this = mkEnvironmentWith env0-extensions rec {
   };
   envlib = {
 
-    # show_vars = ''
-    #   echo "-- $@ ------" 
-    #   declare -p ENVTH_BUILDDIR ENVTH_BUILDDIR_ out ENVTH_OUT ENVTH_ENTRY PWD
-    #   '';
-
     envth = {
       desc = "envth utilities.";
       commands = {
@@ -110,8 +101,9 @@ this = mkEnvironmentWith env0-extensions rec {
           hook = ''
             if [[ $ENVTH_ENTRY == nix-shell ]]; then
               ENVTH_OUT=""
+              env="$1"; shift
               declare -xg ENVTH_BUILDDIR_="$ENVTH_BUILDDIR"
-              exec nix develop "$ENVTH_BUILDDIR/"#"$1"
+                exec nix develop --impure "$ENVTH_BUILDDIR/"#"$env"
             else
               declare env
               if [[ $1 == $name ]]; then
@@ -119,12 +111,14 @@ this = mkEnvironmentWith env0-extensions rec {
               else
                 env="$(envfun-$name envs show $1)"
               fi
-              exec $env/bin/enter-env-$1
+              shift
+              declare -p env
+              exec $env/bin/enter-env-$1 "$@"
             fi
             '';
         };
         reload = {
-          desc = ''Reload current environment. Will update enviornment definition if entered from nix-shell or reenter current shell if binary based.'';
+          desc = ''Reload current environment. Will update enviornment definition if entered from nix develop l or reenter current shell if binary based.'';
           # opts = {
           #   args.desc = ''Pass arguments to nix-shell based reloads.'';
           #   args.set = "args";
@@ -163,7 +157,7 @@ this = mkEnvironmentWith env0-extensions rec {
               declare envopt=''${envopt:=$name}
               # Do build
               echo "building... ($ENVTH_BUILDDIR/.envth/build.log)"
-              nix build -o "$ENVTH_BUILDDIR/.envth/$envopt" \
+              nix build --impure -o "$ENVTH_BUILDDIR/.envth/$envopt" \
                 $ENVTH_BUILDDIR#$name \
                 &> "$ENVTH_BUILDDIR/.envth/build.log"
               [[ $result == result ]] && \
@@ -173,7 +167,7 @@ this = mkEnvironmentWith env0-extensions rec {
         };
 
         install = {
-          desc = "Install current environment via nix-env.";
+          desc = "Install current environment via nix profile.";
           opts.bashrc.desc = "Add call to environment in current user's .bashrc.";
           opts.bashrc.set = "bashrc";
           hook =
@@ -214,7 +208,6 @@ this = mkEnvironmentWith env0-extensions rec {
             #       ENVTH_OUT 
             unset ENVTH_RESOURCES ENVTH_ENTRY ENVTH_DRV \
                   ENVTH_OUT
-            show_vars POST CLEAN
 
             #Dont remove ENVTH_TEMP, that will be reused in reload.'';
           };
@@ -247,7 +240,7 @@ this = mkEnvironmentWith env0-extensions rec {
 
           hook = ''
             [[ ! -e $ENVTH_TEMP/repl.nix ]] && envth repl --make-repl-file
-            nix repl $ENVTH_TEMP/repl.nix
+            nix repl --impure $ENVTH_TEMP/repl.nix
           '';
         };
 
@@ -265,6 +258,16 @@ this = mkEnvironmentWith env0-extensions rec {
           EOF
               fi
             done
+            '';
+        };
+        localize-env = {
+          desc = ''Localize Environment'';
+          opts = with opt-def; { inherit dryrun to;
+            import-dir.desc = "Directory prefix for imported resources.";
+            import-dir.set = "importdir";
+            import-dir.arg = "dir"; };
+          hook = ''
+            cp -r $ENVTH_BUILDDIR ${name}
             '';
         };
         localize = {
