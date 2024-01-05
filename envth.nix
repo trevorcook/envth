@@ -27,13 +27,11 @@ let
       envlib = callPackage ./envlib.nix { inherit metafun; };
       make-environment = callPackage ./make-environment.nix { inherit envth; };
       make-envfun = import ./env-metafun.nix;
-      # caller = callPackage ./caller.nix { };
       # Basic utilities used in some modules.
-      callEnv = envth: x:
-        if builtins.typeOf x == "set" then x
-        else 
-          let callPackage = (self.extend (_:_: { definition_in = toString x; inherit envth; })).callPackage; 
-          in callPackage x {};#inherit envth; };# definition=x;};
+      # Call an environment file with call package, unless it is already a derivation
+      callEnv = x:
+        if isDerivation x then x
+        else callPackage x { inherit envth; };
       diffAttrs = a: b: removeAttrs a (attrNames b);
       };
 

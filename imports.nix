@@ -13,12 +13,12 @@ rec
         merged-imports = [env0] ++ attrByPath ["imports"] [] merged-attrs;
       in merged-attrs // {
           passthru = merged-attrs.passthru
-                  // { envs-imported = map (callEnv envth) merged-imports; };};
+                  // { envs-imported = map callEnv merged-imports; };};
 
     # Merge an imported env into the current attribute set.
     merge-import-env = env_: attrs:
       let
-        env = callEnv envth env_;
+        env = callEnv env_;
         env-attrs = restrict-passthru-attrs env.passthru.attrs-post;
         restrict-passthru-attrs = env: env // {
           passthru = filterAttrs

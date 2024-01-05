@@ -1,4 +1,4 @@
-{envth, lib, callPackage}: with lib; with builtins; with envth.lib;
+{envth, lib}: with lib; with builtins; with envth.lib;
 rec {
 
   # Expand envth to include the list of environments. This uses a fixed
@@ -11,7 +11,7 @@ rec {
         let
           envs = foldr add-env super env-list;
           add-env = f: envs:
-            let env = callEnv (envth.override { envs = envs0 // self; }) f;
+            let env = (envth.override { envs = envs0 // self; }).lib.callEnv f;
             in envs // env.envs-added // (setAttrByPath [env.name] env);
         in envs;
 
@@ -28,7 +28,7 @@ rec {
   addEnvs-nonfix =
     let
       make-new = envth: env_:
-        let env = callEnv envth env_;
+        let env = callEnv env_;
             added = attrByPath ["envs-added"] {} env;
             envs = envth.envs // added // (setAttrByPath [env.name] env);
         in envth.override { inherit envs; };
