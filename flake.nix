@@ -43,7 +43,7 @@
       let 
         pkgs = pkgs-flake.legacyPackages.${sys};
         env = pkgs.callPackage env-file {};
-        envs = env.envs-added // {
+        envs = env.envs-added // mapAttrs (n: v: v.env) env.passthru.projects // {
           "${env.name}" = env;
           default = env;
           };

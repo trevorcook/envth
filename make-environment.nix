@@ -6,6 +6,7 @@ with envth.lib.inits;
 with envth.lib.builder;
 with envth.lib.imports;
 with envth.lib.add-envs;
+with envth.lib.projects;
 # with envth.lib.caller;
 rec
 {
@@ -19,9 +20,9 @@ rec
                      set-default-build-dir
                      add-passthru-pkgs
                      gather-resources
-                    #  add-caller
                      add-envs
                      add-imports
+                     add-projects
                      make-builder
                      make-envcmd
                      make-envlib

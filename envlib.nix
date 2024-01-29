@@ -7,22 +7,28 @@ let # unique list, keeping last instances in list.
 rec {
 
   # make the environment functionality assiciated with the `envlib` attribute.
-  make-envlib = self: super@{import_libs ? [], name, env-varsets?null,...}:
+  make-envlib = self: super@{import_libs ? [], name, env-varsets?null, envlib?{}, ...}:
     let
-      import_libs_out = uniquer ( import_libs ++ [envlib] );
-      envlib = make-fcns-script (super );
+      # The metafun specification for "envfun-$name".
+      envfun-def = envth.lib.envfun.make-metafun-attrs super;
+      envlib-w-envfun = envlib // { "envfun-${name}" = envfun-def;};
+      # Supplied envlib functions and envfun-$name are compiled to a bash script.
+      envlib-script = make-envlib-script (super // { envlib = envlib-w-envfun; });
+      import_libs_out = uniquer ( import_libs ++ [envlib-script] );
       sourceLib = l: ''
         source ${l}/lib/*
         '';
     in {
-      inherit envlib;
+      envlib = envlib-script;
       env-varsets = if isNull env-varsets then
         null
         else {__toString=_:null;} // env-varsets;
       import_libs = import_libs_out;
       importLibsHook = concatMapStrings sourceLib import_libs_out;
-      passthru = super.passthru // {  inherit envlib;
-                                      };
+      passthru = super.passthru // {  
+        envlib.script = envlib-script;
+        envlib.definition = envlib-w-envfun;
+        };
     } ;
 
   # make the environment functionality assiciated with the `envcmd` attribute.
@@ -32,7 +38,6 @@ rec {
       import_cmds_in = import_cmds;
       cmdpth = cmd: ''${toString cmd}/bin:'';
       comppth = "/etc/bash_completion.d";
-
       paths = concatLists (mapAttrsToList mk-scripts envcmd_in);
       mk-scripts = name: def: 
         let 
@@ -54,7 +59,7 @@ rec {
           source $cmds/ref/$ref
         done 
       done
-    '';
+      '';
     };
 
   comp-name = name: "_${name}-complete";
@@ -81,31 +86,14 @@ rec {
       echo chmod +x $path/$cmd
       '';
   
-  # Make a script that creates metafun functions out of all the envlib definitions, and
-  # an envfun-${name} utility function. 
-  make-fcns-script = attrs@{ name,envlib?{},... }: writeTextFile  {
+  # Make a script that creates metafun functions out of all the envlib definitions.
+  make-envlib-script = attrs@{ name,envlib?{},... }: writeTextFile {
     name = "${name}-envlib";
-    text = make-shell-functions envlib + (make-envfun attrs);
+    text = concatStrings (mapAttrsToList make-sourced-metafun-fcn envlib) ;
     executable = true;
     destination = "/lib/${name}-envlib.sh";
   };
 
-  # Make the envfun-${name} function defintion, which is a short text block importing 
-  # the actual envfun-${name} definition.
-  make-envfun = attrs@{ name, ...}:
-    let
-      fcn-name = "envfun-${name}";
-      def = make-envfun-def attrs;
-    in make-sourced-metafun-fcn fcn-name def;
-
-  # Make the attribute set that is passed to metafun to generate the "envfun-${name}" 
-  # function that reports some environment information.
-  make-envfun-def = attrs@{ name, ... }: envth.lib.make-envfun
-    {fname = "envfun-${name}"; inherit lib envth;} attrs;
-
-  # Create a listing of shell functions
-  make-shell-functions = attrs :
-    concatStrings (mapAttrsToList make-sourced-metafun-fcn attrs);
   # Make a shell function by creating a script from its metafun defintion and sourcing.
   # Sourcing reduces the environment size needed for large functions.
   make-sourced-metafun-fcn = name: def: 
@@ -114,16 +102,16 @@ rec {
       cmd = make-cmd-script name def;
       comp = make-comp-script cname def;
     in ''
-          ${name}(){
-            source ${cmd}/bin/${name} "$@"
-          }
-          ${cname}(){
-            source ${comp}/etc/bash_completion.d/${cname} "$@"
-          }
-          export -f ${name}
-          export -f ${cname}
-          complete -F ${cname} ${name}
-          '';
+      ${name}(){
+        source ${cmd}/bin/${name} "$@"
+      }
+      ${cname}(){
+        source ${comp}/etc/bash_completion.d/${cname} "$@"
+      }
+      export -f ${name}
+      export -f ${cname}
+      complete -F ${cname} ${name}
+      '';
     
   show-attrs-with-sep = f : sep: attrs:
     concatStringsSep sep (mapAttrsToList f attrs);

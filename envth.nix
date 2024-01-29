@@ -18,6 +18,7 @@ let
     # This is all the utilities going into making it work.
     lib = rec {
       # envth modules.
+      # opts = import ./common-opts.nix; 
       env0 = callPackage ./env0.nix { inherit envth; };
       inits = callPackage ./inits.nix { inherit envth; pkgs = self; };
       add-envs = callPackage ./add-envs.nix { inherit envth; };
@@ -26,7 +27,8 @@ let
       resources = callPackage ./resources.nix {};
       envlib = callPackage ./envlib.nix { inherit metafun; };
       make-environment = callPackage ./make-environment.nix { inherit envth; };
-      make-envfun = import ./env-metafun.nix;
+      envfun = import ./env-metafun.nix { inherit envth; inherit (self) lib; };
+      projects   = callPackage ./projects.nix {inherit envth;};
       # Basic utilities used in some modules.
       # Call an environment file with call package, unless it is already a derivation
       callEnv = x:

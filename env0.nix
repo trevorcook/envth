@@ -4,53 +4,21 @@ let
   arg-def = {
     envs.name="env"; 
     envs.completion.hint = "<env>";
-    envs.completion.hook = ''echo $name $(envfun-$name envs list)'';
+    envs.completion.hook = ''echo $name $(envfun-$name env list)'';
+    array.name = "array";
+    array.desc = "The name of an associative array";
+    project.name = "project";
+    project.completion.hint = "<project>";
+    project.completion.hook = ''envfun-$name project list'';
     };
-  # TODO: This duplicates env-metafun and shoudl be consolidated
-  opt-def = {
-    current.desc="Current values of keys as environment variables.";
-    current.set="current";
-    changed.desc="The current values of changed variables.";
-    changed.set="changed";
-    names-only.desc="Only print the names of variables set.";
-    names-only.set="namesonly";
-    array.desc = "Show the varset as the values of an associative array";
-    array.hook = ''declare array=true'';
-    to.desc = "copy to directory";
-    to.arg = true;
-    to.set = "copyto";
-    /* to.hook = _:''declare copyto="$1"''; */
-    resource.desc = "A resource";
-    resource.set = "resource";
-    resource.arg = true;
-    explicit.desc = ''Copy exact location only, no expansion of directories or setting of base directory with --to.'';
-    explicit.set = "explicit";
-    dryrun.desc = "Only say what would be done.";
-    dryrun.set = "dryrun";
-    /* env.desc = "Use named environment instead of current one.";
-    env.set = "envname";
-    env.arg = true; */
 
-    env.desc = "Use set from named environment.";
-    env.set = "envname";
-    env.arg.name="env"; #or the option name (if opt argument).
-    env.arg.completion.hint = "<arg:env>";
-    env.arg.completion.hook = ''
-      echo "$name $(envfun-$name imports)"
-      '';
-    file.desc = "Use file";
-    file.set = "fileinput";
-    file.arg = true;
+  opt-def = recursiveUpdate envth.lib.envfun.opts { 
+    env.arg.completion.hook = ''echo "$name $(envfun-$name imports)"'';
+    project-ops.a.completion.hook = '''';
   };
-  array-arg =  [{name="array";desc="The name of an associative array";}];
-  pass-flags = concatStringsSep " "
-    ["\${current:+--current}"
-     "\${changed:+--changed}"
-     "\${namesonly:+--names-only}"
-     ];
-  ## end TODO
-
-this = mkEnvironmentWith env0-extensions rec {
+  pass-flags =  envth.lib.envfun.pass-flags;
+in 
+mkEnvironmentWith env0-extensions rec {
   name = "env0";
   definition = ./env0.nix;
   shellHook = ''
@@ -70,7 +38,6 @@ this = mkEnvironmentWith env0-extensions rec {
     ENVTH_TEMP="$(mktemp -d "''${TMPDIR:-/tmp}/ENVTH_$name.XXX")"
     trap 'rm -r $ENVTH_TEMP' EXIT
     '';
-  /* ENVTH_ENV0 = this; */
   passthru = rec {
     attrs-pre = {
       inherit name definition;
@@ -87,16 +54,14 @@ this = mkEnvironmentWith env0-extensions rec {
     };
   };
   envlib = {
-
     envth = {
       desc = "envth utilities.";
+      preOptHook = ''__vargsin__=("$@")'';
       commands = {
-
         enter = {
           desc = ''
             Replace current environment with an in-scope environment.
-              Environments can be added to scope with the "env-addEnvs" attribute and will allow entering from the current environment via this command or with "nix develop .#env".
-            '';
+              Environments can be added to scope with the "env-addEnvs" attribute and will allow entering from the current environment via this command or with "nix develop .#env".'';
           args = [ arg-def.envs ];
           hook = ''
             if [[ $ENVTH_ENTRY == nix-shell ]]; then
@@ -109,7 +74,7 @@ this = mkEnvironmentWith env0-extensions rec {
               if [[ $1 == $name ]]; then
                 env="$ENVTH_OUT"
               else
-                env="$(envfun-$name envs show $1)"
+                env="$(envfun-$name env show $1)"
               fi
               shift
               declare -p env
@@ -118,7 +83,7 @@ this = mkEnvironmentWith env0-extensions rec {
             '';
         };
         reload = {
-          desc = ''Reload current environment. Will update enviornment definition if entered from nix develop l or reenter current shell if binary based.'';
+          desc = ''Reload current environment. Will either update enviornment definition if entered from nix develop or reenter current shell if binary based.'';
           # opts = {
           #   args.desc = ''Pass arguments to nix-shell based reloads.'';
           #   args.set = "args";
@@ -137,31 +102,30 @@ this = mkEnvironmentWith env0-extensions rec {
 
         build = {
           desc = ''Build the environment output--a script that enters an intertactive session based on the nix-shell of an enviornment's definition.
-            Note, this will build the most current defintion, which may differ from currently loaded defintion.
-            '';
-          opts = rec {
-            # A = attrs;
-            # attrs.desc = "Build an attribute within the definition.";
-            # attrs.set = "attropt";
-            # attrs.arg = true;
-            env.desc = "Build the requested environment.";
-            env.set = "envopt";
-            env.arg = arg-def.envs;
-          };
+            Note, this will build the most current defintion, which may differ from currently loaded defintion.'';
+          opts = with opt-def; { inherit env; };
+          #   # A = attrs;
+          #   # attrs.desc = "Build an attribute within the definition.";
+          #   # attrs.set = "attropt";
+          #   # attrs.arg = true;
+          #   env.desc = "Build the requested environment.";
+          #   env.set = "envname";
+          #   env.arg = arg-def.envs;
+          # };
           hook = ''
             if [[ $ENVTH_ENTRY != bin ]]; then
               mkdir -p $(envth home-dir)/.envth
               # # Check if building an attribute, outlink becomes attribute name.
               # declare result=''${attropt:=result}
               # Check which envrionment to build
-              declare envopt=''${envopt:=$name}
+              declare envname=''${envname:=$name}
               # Do build
               echo "building... ($ENVTH_BUILDDIR/.envth/build.log)"
-              nix build --impure -o "$ENVTH_BUILDDIR/.envth/$envopt" \
+              nix build --impure -o "$ENVTH_BUILDDIR/.envth/$envname" \
                 $ENVTH_BUILDDIR#$name \
                 &> "$ENVTH_BUILDDIR/.envth/build.log"
               [[ $result == result ]] && \
-                ENVTH_OUT="$( readlink $ENVTH_BUILDDIR/.envth/$envopt )"
+                ENVTH_OUT="$( readlink $ENVTH_BUILDDIR/.envth/$envname )"
                 out=$ENVTH_OUT
             fi'';
         };
@@ -261,7 +225,7 @@ this = mkEnvironmentWith env0-extensions rec {
             '';
         };
         localize-env = {
-          desc = ''Localize Environment'';
+          desc = ''Localize Environment.'';
           opts = with opt-def; { inherit dryrun to;
             import-dir.desc = "Directory prefix for imported resources.";
             import-dir.set = "importdir";
@@ -291,8 +255,7 @@ this = mkEnvironmentWith env0-extensions rec {
             '';
         };
         copy-store = {
-          desc = ''Copy from nix store, creating an individual file or whole directory as appropriate. Copies will check for differences in source and destination file (via md5sum) and back-up destination if different. After copy, write mode is added.
-                   '';
+          desc = ''Copy from nix store, creating an individual file or whole directory as appropriate. Copies will check for differences in source and destination file (via md5sum) and back-up destination if different. After copy, write mode is added.'';
           opts = with opt-def; { inherit to explicit dryrun; };
           args = ["store-location" "dest"];
           hook = ''
@@ -337,7 +300,7 @@ this = mkEnvironmentWith env0-extensions rec {
           desc = ''Utility for working with sets of environment variables and associative arrays'';
           commands.set = {
             desc = "Set environment variables based on an associative array.";
-            args = array-arg;
+            args = [arg-def.array];
             hook = let
               do-set = n: v:
                 if isNull v then
@@ -360,7 +323,7 @@ this = mkEnvironmentWith env0-extensions rec {
           commands.show = {
           desc = ''Show values of an associative array'';
           opts = with opt-def; {inherit current changed names-only;};
-          args = array-arg;
+          args = [arg-def.array];
           hook = ''
               # echo "array-vars pass-flags=${pass-flags}"
               declare val
@@ -382,7 +345,28 @@ this = mkEnvironmentWith env0-extensions rec {
               '';
           };
         };
-
+        vars = {
+          desc = ''Show environment variables set by mkEnvironment definition for the current environment and imports.'';
+          opts = with opt-def; {inherit current changed names-only;
+            };
+          hook = ''
+            declare allvars
+            if [[ -n $namesonly ]]; then
+              for n in $(envfun-''${name} imports) $name; do
+                allvars+="$(envfun-$n vars ${ pass-flags }) "
+              done
+              echo $allvars
+              echo 
+              echo $allvars | tr ' ' '\n' | sort -u
+            else
+              for n in $(envfun-''${name} imports) $name; do
+                echo $n ~~~~~~~~~~~~~~~~~~~~~~~~~
+                envfun-$n vars ${ pass-flags }
+                echo ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+              done
+            fi
+            '';
+        };
         varsets = {
           desc = ''
             Manipulate variable sets defined by the environment and imports.
@@ -460,7 +444,7 @@ this = mkEnvironmentWith env0-extensions rec {
               '';
           }; */
 
-        };
+          };
   /* commands.varsets = {
     desc = "Manipulate environment variable sets defined in env-varsets";
     commands.set = {
@@ -481,11 +465,53 @@ this = mkEnvironmentWith env0-extensions rec {
   }; */
 
 
+        lib = {
+          desc = ''Show all envlib declarations in order of their import.'';
+          hook = ''
+            for n in $(envfun-''${name} imports) $name; do
+            cat <<EOF
+            $n ~~~~~~~~~~~~~~~~~~~~~~~~~
+            $(envfun-$n lib)
+            ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
+            EOF
+            done
+            '';
+        };
+        project = {
+          desc = "Work with environment projects, non-flake environments associated with the current environments.";
+          commands = {
+            list.desc = ''Show projects associated with current environment.'';
+            list.hook = ''envfun-$name project list''; 
+            enter = {
+              desc = ''Change to specified project's directory and enter project sub-environment.'';
+              args = [ arg-def.project ];
+              hook = ''envfun-$name ''${__vargsin__[@]}'';
+            };
+            definition = {
+              desc = ''The environment nix file location.'';
+              args = [ arg-def.project ];
+              hook = ''envfun-$name project definition $1'';
+            };
+            localize = {
+              desc = ''Copy project environments to current directory.'';
+              opts = with opt-def; { 
+                inherit dryrun;
+                inherit (project-opts) a no-dir;
+                };
+              args = [ arg-def.project ];
+              hook = ''
+                dryrun=''${dryrun:+--dryrun}
+                nodir=''${nodir:+--no-dir}
+                envfun-$name project localize $dryrun $nodir $1
+                '';
+            };
+          };
+        };
 
 
         deploy = {
-          desc = ''Migration to other hosts.Use in conjunction with NIX_SSHOPTS.'';
+          desc = ''Migration to other hosts. Use in conjunction with NIX_SSHOPTS.'';
           args = ["to"];
           hook = ''
             envth build
@@ -577,9 +603,9 @@ this = mkEnvironmentWith env0-extensions rec {
             '';
         };
         sudo = {
-          desc = "sudo, keeping environmnet variables (just uses sudo -E)";
+          desc = "sudo, keeping PATH. (Doesn't use sudo -E because poratability, Ubuntu)";
           hook = ''
-            sudo -E "$@"
+            sudo --preserve-env=PATH "$@"
             '';
         };
         PATH-nub = {
@@ -625,21 +651,6 @@ this = mkEnvironmentWith env0-extensions rec {
             PS1="\n${pcolor "\${c1}"}[$name]${pcolor "\${c2}"}$USER@\h:${pcolor "\${c3}"}\W${pcolor "0"}\$ "
           '';
         };
-
-        lib = {
-          desc = ''Show all libs in order of their import.'';
-          hook = ''
-            for n in $(envfun-''${name} imports) $name; do
-            cat <<EOF
-            $n ~~~~~~~~~~~~~~~~~~~~~~~~~
-            $(envfun-$n lib)
-            ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-
-            EOF
-            done
-            '';
-        };
-
       };
     };
 
@@ -664,5 +675,4 @@ this = mkEnvironmentWith env0-extensions rec {
       '';
 
   };
-};
-in this
+}

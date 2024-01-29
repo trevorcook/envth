@@ -1,4 +1,4 @@
-{envth, lib}: with lib; with builtins; with envth.lib;
+{envth, lib}: with lib; with builtins;
 rec {
 
   # Expand envth to include the list of environments. This uses a fixed
@@ -28,7 +28,7 @@ rec {
   addEnvs-nonfix =
     let
       make-new = envth: env_:
-        let env = callEnv env_;
+        let env = envth.lib.callEnv env_;
             added = attrByPath ["envs-added"] {} env;
             envs = envth.envs // added // (setAttrByPath [env.name] env);
         in envth.override { inherit envs; };
@@ -39,18 +39,14 @@ rec {
   # imported environments.
   add-envs = self: super:
     let
-      #ADDENVS rename
-      /* envs-in = attrByPath ["addEnvs"] [] super; */
       envs-in = attrByPath ["env-addEnvs"] [] super;
-      ####
-      #envs-orig = envth.envs;
       update = fix-envth-with envs-in;
       envs-added = if envs-in == [] then {} else update.envs-added;
       envs = envth.envs // envs-added ;
     in
       { env-addEnvs=null;
         passthru =  super.passthru // {
-          inherit envs envs-added;# envs-orig;
+          inherit envs envs-added;
         };
       };
 
