@@ -13,7 +13,8 @@ rec
         merged-imports = [env0] ++ attrByPath ["imports"] [] merged-attrs;
       in merged-attrs // {
           passthru = merged-attrs.passthru
-                  // { envs-imported = map callEnv merged-imports; };};
+                  // { envs-imported = map callEnv merged-imports; 
+                       envs-imported-declared = map callEnv imports; };};
 
     # Merge an imported env into the current attribute set.
     merge-import-env = env_: attrs:

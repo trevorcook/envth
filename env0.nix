@@ -2,21 +2,35 @@
 with envth.lib.make-environment;
 let
   arg-def = {
-    envs.name="env"; 
-    envs.completion.hint = "<env>";
-    envs.completion.hook = ''echo $name $(envfun-$name env list)'';
-    array.name = "array";
-    array.desc = "The name of an associative array";
+    added-env.name="env"; 
+    added-env.completion.hint = "<env>";
+    added-env.completion.hook = ''echo $name $(envfun-$name env list)'';
     project.name = "project";
     project.completion.hint = "<project>";
-    project.completion.hook = ''envfun-$name project list'';
+    project.completion.hook = ''envth project list'';
     };
 
-  opt-def = recursiveUpdate envth.lib.envfun.opts { 
+  opt-def = {
+    # current.desc="Current values of keys as environment variables.";
+    # current.set="current";
+    # changed.desc="The current values of changed variables.";
+    # changed.set="changed";
+    names-only.desc="Only print the names of variables.";
+    names-only.set="namesonly";
+    to.desc = "Copy to directory";
+    to.arg = "dir";
+    to.set = "copyto";
+    explicit.desc = ''Copy exact location only, no expansion of directories or setting of base directory with --to.'';
+    explicit.set = "explicit";
+    dryrun.desc = "Only say what would be done.";
+    dryrun.set = "dryrun";
+    env.desc = "Perform operation using named environment.";
+    env.set = "envname";
+    env.arg.name="env";
+    env.arg.completion.hint = "<env>";
     env.arg.completion.hook = ''echo "$name $(envfun-$name imports)"'';
-    project-ops.a.completion.hook = '''';
-  };
-  pass-flags =  envth.lib.envfun.pass-flags;
+
+    };
 in 
 mkEnvironmentWith env0-extensions rec {
   name = "env0";
@@ -32,8 +46,8 @@ mkEnvironmentWith env0-extensions rec {
     else
       envth home-dir >> /dev/null
     fi
-    envth set-PS1
-    envth PATH-nub
+    envth misc set-PS1
+    envth misc PATH-nub
     #export ENVTH_TEMP=''${ENVTH_TEMP:=$(mktemp -d "''${TMPDIR:-/tmp}/ENVTH_$name.XXX")}
     ENVTH_TEMP="$(mktemp -d "''${TMPDIR:-/tmp}/ENVTH_$name.XXX")"
     trap 'rm -r $ENVTH_TEMP' EXIT
@@ -47,7 +61,6 @@ mkEnvironmentWith env0-extensions rec {
       ENVTH_ENTRY = "";
       ENVTH_DRV = "";
       ENVTH_OUT = "";
-      # ENVTH_CALLER = "";
       ENVTH_NOCLEANUP = "";
       ENVTH_TEMP = "";
       ENVTH_SSH_EXPORTS = "";
@@ -55,14 +68,15 @@ mkEnvironmentWith env0-extensions rec {
   };
   envlib = {
     envth = {
-      desc = "envth utilities.";
-      preOptHook = ''__vargsin__=("$@")'';
+      desc = "Utilities for working with envth environments.";
+      preOptHook = ''declare __vargsin__=("$@")'';
       commands = {
         enter = {
           desc = ''
             Replace current environment with an in-scope environment.
               Environments can be added to scope with the "env-addEnvs" attribute and will allow entering from the current environment via this command or with "nix develop .#env".'';
-          args = [ arg-def.envs ];
+          # Most options expect imported env, enter is for associated (or project) envs.
+          args = [ arg-def.added-env ];
           hook = ''
             if [[ $ENVTH_ENTRY == nix-shell ]]; then
               ENVTH_OUT=""
@@ -103,7 +117,7 @@ mkEnvironmentWith env0-extensions rec {
         build = {
           desc = ''Build the environment output--a script that enters an intertactive session based on the nix-shell of an enviornment's definition.
             Note, this will build the most current defintion, which may differ from currently loaded defintion.'';
-          opts = with opt-def; { inherit env; };
+          opts = { env = opt-def.env // { arg = arg-def.added-env; }; };
           #   # A = attrs;
           #   # attrs.desc = "Build an attribute within the definition.";
           #   # attrs.set = "attropt";
@@ -137,7 +151,7 @@ mkEnvironmentWith env0-extensions rec {
           hook =
             let
               guarded-exec = ''
-                [[ -z \$PS1 ]] || [[ -n \$ENVTH_ENTRY ]] || exec enter-env-$name \"source ~/.bashrc ; envth set-PS1; return\" \n'';
+                [[ -z \$PS1 ]] || [[ -n \$ENVTH_ENTRY ]] || exec enter-env-$name \"source ~/.bashrc ; envth misc set-PS1; return\" \n'';
             in ''
             if [[ $ENVTH_ENTRY != bin ]]; then
               envth build
@@ -210,53 +224,93 @@ mkEnvironmentWith env0-extensions rec {
 
         resource = {
           desc = ''Show environment resources.'';
-          opts = with opt-def; { inherit current changed names-only; };
           hook = ''
             for n in $name $(envfun-$name imports); do
               if [[ $n != env0 ]]; then
-          cat <<EOF
-          $n ~~~~~~~~~~~~~~~~~~~~~~~~
-          $(envfun-$n resource ${pass-flags})
-          ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
-          EOF
+            cat <<EOF
+            $n ~~~~~~~~~~~~~~~~~~~~~~~~
+            $(envfun-$n resource list)
+            ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+            EOF
+
               fi
             done
             '';
         };
-        localize-env = {
-          desc = ''Localize Environment.'';
-          opts = with opt-def; { inherit dryrun to;
-            import-dir.desc = "Directory prefix for imported resources.";
-            import-dir.set = "importdir";
-            import-dir.arg = "dir"; };
+        imports = {
+          desc = ''Show closure of all imported environments.'';
+          opts.declared.desc = ''Only show those imports declared by environment.'';
+          opts.declared.set = "declared";
+          opts.tree.desc = ''Graphical representation of recursive imports. Ignores env0, which is imorted by each environment.'';
+          opts.tree.set = "tree";
           hook = ''
-            cp -r $ENVTH_BUILDDIR ${name}
-            '';
+            declare imports=$(envfun-$name imports)
+            if [[ -n $tree ]]; then
+              for env in $(envfun-$name imports --declared); do
+                echo $env
+                # indent the returned imports
+                paste -d'  ' - - <(name=$env envth imports --tree) < /dev/null
+              done
+            else
+              envfun-$name imports ''${declared:+--declared}
+            fi
+          '';
         };
+
         localize = {
           desc = ''Copy resources from nix store. Expects zero or more resource names as arguments. Zero arguments implies all.'';
+          preOptHook = ''
+            declare -f localize_env__
+            __localize_env__(){
+              declare env="$1"
+              shift
+              rsrcs=( "$@" )
+              for rsrc in "''${rsrcs[@]}"; do
+                declare store_and_local="$(envfun-$env resource show "$rsrc")"
+                if [[ -n $store_and_local ]]; then
+                  envth copy-store $dryrun --to "$copyto" $store_and_local
+                else
+                  echo "Environment '$env' has no resource '$rsrc' to localize."
+                fi
+              done
+            }
+          '';
           opts = with opt-def; { inherit dryrun to;
             import-dir.desc = "Directory prefix for imported resources.";
             import-dir.set = "importdir";
-            import-dir.arg = "dir"; };
+            import-dir.arg = "dir"; 
+            imports.desc = "Also localize imports to 'envs' or the value of --import-dir ";
+            imports.set = "localizeImports";
+            };
           hook = ''
             dryrun="''${dryrun:+--dryrun}"
-            importdir="''${importdir:=envs}"
             copyto="''${copyto:=.}"
-            for n in $name $(envfun-$name imports); do
-              if [[ $n == $name ]]; then
-                envfun-$n localize $dryrun --to "$copyto"
-              #elif [[ $n != env0 ]]; then
-              else
-                envfun-$n localize $dryrun --to "$copyto/$importdir/$n"
-              fi
-            done
+            __localize_env__ $name "$@"
+            if [[ -n $localizeImports ]] || [[ -n $importdir ]]; then
+              copyto="''${importdir:=envs}"
+              for env in $(envfun-$name imports); do
+                __localize_env__ $env "$@"
+              done
+            fi
             '';
         };
+
         copy-store = {
           desc = ''Copy from nix store, creating an individual file or whole directory as appropriate. Copies will check for differences in source and destination file (via md5sum) and back-up destination if different. After copy, write mode is added.'';
           opts = with opt-def; { inherit to explicit dryrun; };
+          preOptHook = ''
+            arg-n(){
+              declare n=$1
+              if [[ $# -le $n ]] ; then
+                echo 'arg-n: index out of bounds' > /dev/stderr
+                return;
+              fi
+              for i in $(seq $n); do shift; done
+              echo $1
+              }
+            '';
           args = ["store-location" "dest"];
           hook = ''
             # Do the copy
@@ -289,71 +343,15 @@ mkEnvironmentWith env0-extensions rec {
             '';
           };
 
-        array-vars =
-          let
-            get-arr = name: ''
-              declare temp=$(declare -pn $1)
-              declare -A ${name}
-              eval "''${temp/$1=/${name}=}"
-              '';
-          in {
-          desc = ''Utility for working with sets of environment variables and associative arrays'';
-          commands.set = {
-            desc = "Set environment variables based on an associative array.";
-            args = [arg-def.array];
-            hook = let
-              do-set = n: v:
-                if isNull v then
-                  "unset ${n}"
-                else "declare -xg ${n}=${toString v}";
-            in
-              ''
-              # echo "array-vars pass-flags=${pass-flags}"
-              declare val
-              ${get-arr "vars"}
-              for key in "''${!vars[@]}"; do
-                if [[ -n $key ]] ; then
-                  declare -xg $key="''${vars[$key]}"
-                else
-                  unset $key
-                fi
-              done
-              '';
-          };
-          commands.show = {
-          desc = ''Show values of an associative array'';
-          opts = with opt-def; {inherit current changed names-only;};
-          args = [arg-def.array];
-          hook = ''
-              # echo "array-vars pass-flags=${pass-flags}"
-              declare val
-              ${get-arr "vars"}
-              for key in "''${!vars[@]}"; do
-                if [[ -n $current ]] ; then
-                  eval val=$(echo \$$(echo $key))
-                  echo "$key=$val"
-                elif [[ -n $changed ]]; then
-                  eval val=$(echo \$$(echo $key))
-                  [[ $val != ''${vars[$key]} ]] && echo "$key=$val"
-                elif [[ -n $namesonly ]]; then
-                  echo "$key"
-                else
-                  val=''${vars[$key]}
-                  echo "$key=$val"
-                fi
-              done
-              '';
-          };
-        };
-        vars = {
-          desc = ''Show environment variables set by mkEnvironment definition for the current environment and imports.'';
-          opts = with opt-def; {inherit current changed names-only;
-            };
+
+        envvars = {
+          desc = ''Show environment variables set by mkEnvironment definition.'';
+          # opts = with opt-def; {inherit current changed names-only; };
           hook = ''
             declare allvars
             if [[ -n $namesonly ]]; then
               for n in $(envfun-''${name} imports) $name; do
-                allvars+="$(envfun-$n vars ${ pass-flags }) "
+                allvars+="$(envfun-$n vars) "
               done
               echo $allvars
               echo 
@@ -361,109 +359,178 @@ mkEnvironmentWith env0-extensions rec {
             else
               for n in $(envfun-''${name} imports) $name; do
                 echo $n ~~~~~~~~~~~~~~~~~~~~~~~~~
-                envfun-$n vars ${ pass-flags }
+                envfun-$n envvars list
                 echo ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
               done
             fi
             '';
         };
         varsets = {
-          desc = ''
-            Manipulate variable sets defined by the environment and imports.
-            '';
-          commands.set = {
-            desc = "Set the varset keys to environment variables.";
-            preOptHook = ''
-              #declare -f nub
-              nub(){
-                echo $1 | tr ' ' '\n' | sort -u
-              }
-              #declare -f elem
-              elem(){
-                if [[ "$(nub "$1 $2")" == "$(nub "$2")" ]]; then
-                  echo true
-                else
-                  echo false
-                fi
-              }
-              '';
-            args = [{ name="varset"; #or the option name (if opt argument).
-                      desc="The varset attribute.";
-                      completion.hint = "<arg:varset>";
-                      completion.hook = ''
-                        declare envs="$name $(envfun-$name imports)"
-                        declare sets
-                        for env in $envs; do
-                          sets="$sets $(envfun-$env varsets list)"
-                        done
-                        echo $sets | tr ' ' '\n' | sort -u
-                        '';
-                     }];
-            opts = { inherit (opt-def) env; };
+          desc = ''Manipulate variable sets, 'varsets', defined by the environment and imports.'';
+          commands.list = {
+            desc = ''List the names of variable sets associated with each environment.'';
+            opts = with opt-def; {inherit names-only; };
             hook = ''
-              declare envs="$name $(envfun-$name imports)"
-              declare envname=''${envname:=}
-              for env in $envs; do
-                [[ -n $envname ]] && break
-                if [[ true == $(elem "$1" "$(envfun-$env varsets list)") ]]; then
-                  envname=$env
-                  break
-                fi
-              done
-              if [[ -n $envname ]]; then
-                envfun-$envname varsets set $1
-              fi
-              '';
-          };
-          commands.list = ''
               declare sets
-              declare any
+              declare -a all=()
               for n in $name $(envfun-$name imports); do
                 sets="$(envfun-$n varsets list)"
-                if [[ -n $sets ]]; then
+                all+=( $sets )
 
-            cat <<EOF
-            $n ~~~~~~~~~~~~~~~~~~~~~~~~
-            $sets
-            ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+                if [[ -n $sets ]] && [[ -z $namesonly ]]; then
+              cat <<EOF
+              $n ~~~~~~~~~~~~~~~~~~~~~~~~
+              $sets
+              ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
-            EOF
+              EOF
+                fi
 
-               fi
+              done
+              [[ -n $namesonly ]] && echo ''${all[@]}
+              '';
+          };
+          commands.show = {
+            desc = "Show the value assignments of a particular varset.";
+            opts = with opt-def; {inherit env;};
+            args = [{name = "varset";
+                     desc = "The varset attribute.";                  
+                     completion.hook = ''echo $(envth varsets list --names-only)''; }];
+            hook = "varset=$1";
+            commands.vars.desc = ''Show the variable names defined in varset.'';
+            commands.vars.hook = ''
+              envname=''${envname:=$name}
+              envfun-$envname varsets show $varset vars
+              '';
+            };
+          commands.set = {
+            desc = "Set the varset keys to environment variables.";
+            opts = { inherit (opt-def) env; };
+            args = [{ name="varset";
+                      desc="The varset attribute.";
+                      completion.hook = ''echo $(envth varsets list --names-only)'';
+                     }];
+            hook = ''
+              varset="$1"
+              envname=''${envname:=$name}
+              for var in $(envfun-$envname varsets show "$varset" vars); do
+                declare -xg $var="$(envfun-$envname varsets show "$varset" value $var)"
               done
               '';
-          /* commands.show = {
-            desc = "Show the value assignments of a varset.";
-            opts = with opt-def; {inherit current changed names-only env;};
-            args = if varsets!={} then [setsarg] else [];
-            hook = ''
-              ${sets-case
-                 ( n: s : ''declare -A vars=${ show-attrs-as-assocArray s }'')
-                 varsets }
-              envth array-vars show ${pass-flags} vars
-              '';
-          }; */
+          };
 
           };
-  /* commands.varsets = {
-    desc = "Manipulate environment variable sets defined in env-varsets";
-    commands.set = {
-      desc = "Set the varset keys to environment variables.";
-      args = if varsets!={} then [setsarg] else [];
-      hook = let
-        do-set = n: v:
-          if isNull v then
-            "unset ${n}"
-          else ''declare -xg ${n}="${toString v}"'';
-      in
-        sets-case (_: show-attrs-with-sep do-set "\n") varsets;
-      };
-    commands.list = {
-      desc = "Show available varsets.";
-      hook = ''echo ${show-attrs-with-sep (n: _: n) " " varsets}'';
-    };
-  }; */
 
+              # TODO: Keep. This finds the first environment in which a varset variable is named. 
+              # nub(){
+              #   echo $1 | tr ' ' '\n' | sort -u
+              # }
+              # elem(){
+              #   if [[ "$(nub "$1 $2")" == "$(nub "$2")" ]]; then
+              #     echo true
+              #   else
+              #     echo false
+              #   fi
+              # }
+              # for env in $envs; do
+              #   [[ -n $envname ]] && break
+              #   if [[ true == $(elem "$1" "$(envfun-$env varsets list)") ]]; then
+              #     envname=$env
+              #     break
+              #   fi
+              # done
+          # TODO: This is the logic behind showing changed/current variables
+          # desc = ''Show values of an associative array'';
+          # opts = with opt-def; {inherit current changed names-only;};
+          # args = [arg-def.array];
+          # hook = ''
+          #     # echo "array-vars pass-flags=${pass-flags}"
+          #     declare val
+          #     ${get-arr "vars"}
+          #     for key in "''${!vars[@]}"; do
+          #       if [[ -n $current ]] ; then
+          #         eval val=$(echo \$$(echo $key))
+          #         echo "$key=$val"
+          #       elif [[ -n $changed ]]; then
+          #         eval val=$(echo \$$(echo $key))
+          #         [[ $val != ''${vars[$key]} ]] && echo "$key=$val"
+          #       elif [[ -n $namesonly ]]; then
+          #         echo "$key"
+          #       else
+          #         val=''${vars[$key]}
+          #         echo "$key=$val"
+          #       fi
+          #     done
+          #     '';
+          # };
+
+        # # from opt-def
+        # array.desc = "Put values in associative array";
+        # array.arg = true;
+        # array.set = "arrayname";
+        # from arg-def
+        # array.name = "array";
+        # array.desc = "The name of an associative array";
+        # pass-flags = concatStringsSep " "
+        #   ["\${current:+--current}"
+        #   "\${changed:+--changed}"
+        #   "\${namesonly:+--names-only}"
+        #   ];
+        # array-vars =
+        #   let
+        #     get-arr = name: ''
+        #       declare temp=$(declare -pn $1)
+        #       declare -A ${name}
+        #       eval "''${temp/$1=/${name}=}"
+        #       '';
+        #   in {
+        #   desc = ''Utility for working with sets of environment variables and associative arrays'';
+        #   commands.set = {
+        #     desc = "Set environment variables based on an associative array.";
+        #     args = [arg-def.array];
+        #     hook = let
+        #       do-set = n: v:
+        #         if isNull v then
+        #           "unset ${n}"
+        #         else "declare -xg ${n}=${toString v}";
+        #     in
+        #       ''
+        #       declare val
+        #       ${get-arr "vars"}
+        #       for key in "''${!vars[@]}"; do
+        #         if [[ -n $key ]] ; then
+        #           declare -xg $key="''${vars[$key]}"
+        #         else
+        #           unset $key
+        #         fi
+        #       done
+        #       '';
+        #   };
+        #   commands.show = {
+        #   desc = ''Show values of an associative array'';
+        #   opts = with opt-def; {inherit current changed names-only;};
+        #   args = [arg-def.array];
+        #   hook = ''
+        #       # echo "array-vars pass-flags=${pass-flags}"
+        #       declare val
+        #       ${get-arr "vars"}
+        #       for key in "''${!vars[@]}"; do
+        #         if [[ -n $current ]] ; then
+        #           eval val=$(echo \$$(echo $key))
+        #           echo "$key=$val"
+        #         elif [[ -n $changed ]]; then
+        #           eval val=$(echo \$$(echo $key))
+        #           [[ $val != ''${vars[$key]} ]] && echo "$key=$val"
+        #         elif [[ -n $namesonly ]]; then
+        #           echo "$key"
+        #         else
+        #           val=''${vars[$key]}
+        #           echo "$key=$val"
+        #         fi
+        #       done
+        #       '';
+        #   };
+        # };
 
         lib = {
           desc = ''Show all envlib declarations in order of their import.'';
@@ -483,32 +550,25 @@ mkEnvironmentWith env0-extensions rec {
           commands = {
             list.desc = ''Show projects associated with current environment.'';
             list.hook = ''envfun-$name project list''; 
-            enter = {
-              desc = ''Change to specified project's directory and enter project sub-environment.'';
-              args = [ arg-def.project ];
-              hook = ''envfun-$name ''${__vargsin__[@]}'';
-            };
-            definition = {
+            show = {
               desc = ''The environment nix file location.'';
               args = [ arg-def.project ];
-              hook = ''envfun-$name project definition $1'';
+              hook = ''envfun-$name project show $1'';
             };
-            localize = {
-              desc = ''Copy project environments to current directory.'';
-              opts = with opt-def; { 
-                inherit dryrun;
-                inherit (project-opts) a no-dir;
-                };
+            enter = {
+              desc = ''Change to specified project's directory and enter project sub-environment.'';
+              opts = { no-cd.desc = "Stay in current directory"; 
+                       no-cd.set = "nocd"; };
               args = [ arg-def.project ];
-              hook = ''
-                dryrun=''${dryrun:+--dryrun}
-                nodir=''${nodir:+--no-dir}
-                envfun-$name project localize $dryrun $nodir $1
+              hook = '' 
+                ( declare -gx ENVTH_PROJECTDIR=$( dirname $(envth project show $1) )
+                  [[ -z $nocd ]] && cd $ENVTH_PROJECTDIR
+                  envth enter $1
+                )
                 '';
+              };
             };
           };
-        };
-
 
         deploy = {
           desc = ''Migration to other hosts. Use in conjunction with NIX_SSHOPTS.'';
@@ -540,7 +600,7 @@ mkEnvironmentWith env0-extensions rec {
             { [[ $nodeploy == true ]] || envth deploy "$host" ; } && \
             {
               declare ssh_cond
-              declare cmd="$(cmd-wrap "$(envth export-cmd "$@")")"
+              declare cmd="$(envth misc cmd-wrap "$(envth misc export-cmd "$@")")"
               if [[ -z $background ]]; then
                 declare enter=''${enter:=$(envth entry-path)};
                 declare enter_cmd="$enter $cmd"
@@ -569,33 +629,6 @@ mkEnvironmentWith env0-extensions rec {
             }
             '';
         };
-        export-cmd = {
-          desc = ''Prepare a command for export to other hosts by prepending "declare" statements from ENVTH_SSH_EXPORTS'';
-          hook =  ''
-            declare -a args=()
-            declare val
-            if [[ -n $ENVTH_SSH_EXPORTS ]]; then
-              for i in $ENVTH_SSH_EXPORTS ENVTH_SSH_EXPORTS; do
-              # The enter-env script runs the declarations in a function.
-              # declare -p will not append a "g" option. Hence the following
-              # workaround.
-              #  args+=( "$(declare -p $i)
-              #" )
-                val="$(declare -p $i)"
-                val="''${val/declare -? $i=/}"
-                args+=( "declare -xg $i=$val
-              " )
-              done
-            fi
-            if [[ -z "$@" ]]; then
-              args+=( return )
-            else
-              args+=( "$@" )
-            fi
-            echo "''${args[@]}"
-            '';
-          };
-
         su = {
           desc = "Switch user, inherit environment.";
           hook = ''
@@ -608,71 +641,90 @@ mkEnvironmentWith env0-extensions rec {
             sudo --preserve-env=PATH "$@"
             '';
         };
-        PATH-nub = {
-          desc = ''Remove duplicate from PATH.'';
-          hook = ''
-            PATH=$(echo -n $PATH | awk -v RS=: '!($0 in a) {a[$0]; printf("%s%s", length(a) > 1 ? ":" : "", $0)}')
+        misc = {
+          desc = "Miscellaneous routines used by envth.";
+          commands.PATH-nub = {
+            desc = ''Remove duplicate from PATH.'';
+            hook = ''
+              PATH=$(echo -n $PATH | awk -v RS=: '!($0 in a) {a[$0]; printf("%s%s", length(a) > 1 ? ":" : "", $0)}')
+              '';
+            };
+          commands.PATH-stores = {
+            desc = "Show the portion of PATH from /nix/store.";
+            hook = ''
+            echo $PATH | tr ":" "\n" | grep /nix/store | tr "\n" " "
             '';
-        };
-        PATH-stores = {
-          desc = "Show the portion of PATH from /nix/store.";
-          hook = ''
-          echo $PATH | tr ":" "\n" | grep /nix/store | tr "\n" " "
-          '';
-        };
+            };
+          commands.set-PS1 = {
+            desc = "Set the enviornment prompt.";
+            hook = let pcolor = c: ''\[\033[${c}m\]''; in ''
+              local c1 c2 c3 cx
+              cx=0
+              case $# in
+              1)
+                c1="$1"
+                c2="$1"
+                c3="$1"
+                ;;
+              2)
+                c1="$1"
+                c2="$2"
+                c3="$2"
+                ;;
+              3)
+                c1="$1"
+                c2="$2"
+                c3="$3"
+                ;;
+              *)
+                c1="0;35"
+                c2="1;34"
+                c3="0;36"
+                ;;
+              esac
+              PS1="\n${pcolor "\${c1}"}[$name]${pcolor "\${c2}"}$USER@\h:${pcolor "\${c3}"}\W${pcolor "0"}\$ "
+            '';
+          };
+          commands.cmd-wrap = ''
+            # A simple utility for wrapping up commands in "ssh/eval"
+            # compatible strings. Didactic.
+            [[ -n "$@" ]] && printf '%q ' "$@"
+            '';
+          commands.export-cmd = {
+            desc = ''Prepare a command for export to other hosts by prepending "declare" statements from ENVTH_SSH_EXPORTS'';
+            hook =  ''
+              declare -a args=()
+              declare val
+              if [[ -n $ENVTH_SSH_EXPORTS ]]; then
+                for i in $ENVTH_SSH_EXPORTS ENVTH_SSH_EXPORTS; do
+                # The enter-env script runs the declarations in a function.
+                # declare -p will not append a "g" option. Hence the following
+                # workaround.
+                #  args+=( "$(declare -p $i)
+                #" )
+                  val="$(declare -p $i)"
+                  val="''${val/declare -? $i=/}"
+                  args+=( "declare -xg $i=$val
+                " )
+                done
+              fi
+              if [[ -z "$@" ]]; then
+                args+=( return )
+              else
+                args+=( "$@" )
+              fi
+              echo "''${args[@]}"
+              '';
+            };
 
-        set-PS1 = {
-          desc = "Set the enviornment prompt.";
-          hook = let pcolor = c: ''\[\033[${c}m\]''; in ''
-            local c1 c2 c3 cx
-            cx=0
-            case $# in
-            1)
-              c1="$1"
-              c2="$1"
-              c3="$1"
-              ;;
-            2)
-              c1="$1"
-              c2="$2"
-              c3="$2"
-              ;;
-            3)
-              c1="$1"
-              c2="$2"
-              c3="$3"
-              ;;
-            *)
-              c1="0;35"
-              c2="1;34"
-              c3="0;36"
-              ;;
-            esac
-            PS1="\n${pcolor "\${c1}"}[$name]${pcolor "\${c2}"}$USER@\h:${pcolor "\${c3}"}\W${pcolor "0"}\$ "
-          '';
+
         };
+        
+
       };
     };
 
-    cmd-wrap = ''
-      # A simple utility for wrapping up commands in "ssh/eval"
-      # compatible strings. Didactic.
-      [[ -n "$@" ]] && printf '%q ' "$@"
-      '';
 
-    arg-n = ''
-      if [[ $# < 2 ]]; then
-        echo 'arg-n: needs 2 or more arguments' > /dev/stderr
-        return;
-      fi
-      local n=$1
-      if [[ $# -le $n ]] ; then
-        echo 'arg-n: index out of bounds' > /dev/stderr
-        return;
-      fi
-      for i in $(seq $n); do shift; done
-      echo $1
-      '';
 
   };
 }
