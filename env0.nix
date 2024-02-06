@@ -266,7 +266,11 @@ mkEnvironmentWith env0-extensions rec {
             __localize_env__(){
               declare env="$1"
               shift
-              rsrcs=( "$@" )
+              if [[ $# -ne 0 ]]; then
+                 rsrcs=( "$@" )
+              else
+                 rsrcs=( $(envfun-$env resource list) )
+              fi
               for rsrc in "''${rsrcs[@]}"; do
                 declare store_and_local="$(envfun-$env resource show "$rsrc")"
                 if [[ -n $store_and_local ]]; then
