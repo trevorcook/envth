@@ -209,7 +209,7 @@ mkEnvironmentWith env0-extensions rec {
             cat >$ENVTH_TEMP/repl.nix <<EOF
             let
               flake = builtins.getFlake (toString $ENVTH_BUILDDIR/.);
-              env = flake.outputs.devShells.\''${builtins.currentSystem}.default;
+              env = flake.outputs.devShells.\''${builtins.currentSystem}.$name;
               passthru = { inherit flake; } // env.passthru;
             in
               env // { inherit passthru; }
