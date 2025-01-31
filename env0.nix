@@ -36,6 +36,7 @@ mkEnvironmentWith env0-extensions rec {
   name = "env0";
   definition = ./env0.nix;
   shellHook = ''
+    name=''${name%-env} #Nix develop appends "-env" to the name
     if [[ $out != $ENVTH_OUT ]]; then
       # If binary, ENVTH_OUT will match out.
       # If shell, will not match or be unset.
@@ -217,8 +218,13 @@ mkEnvironmentWith env0-extensions rec {
             '';
 
           hook = ''
-            [[ ! -e $ENVTH_TEMP/repl.nix ]] && envth repl --make-repl-file
-            nix repl --impure $ENVTH_TEMP/repl.nix
+            # Two ways to call the repl below. I want one that doesn't 
+            # recopy the flake into the store cause that was eating up memory.
+            # This works and adds flake to the passthru
+            # [[ ! -e $ENVTH_TEMP/repl.nix ]] && envth repl --make-repl-file
+            # nix repl --impure --file $ENVTH_TEMP/repl.nix
+            # This works too, and doesn't require the temp file
+            nix repl --impure ''${ENVTH_BUILDDIR}#''${name}
           '';
         };
 

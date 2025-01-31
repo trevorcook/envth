@@ -86,6 +86,7 @@ rec
           env-addEnvs = keeplist;
           ###
           env-varsets = keepattr;
+          # env-varsets = mergeattr "env-varsets";
           name = keepstring;
           definition = keepstring;
           envlib = keepattr;
