@@ -4,7 +4,7 @@ let
   arg-def = {
     added-env.name="env"; 
     added-env.completion.hint = "<env>";
-    added-env.completion.hook = ''echo $name $(envfun-$name env list)'';
+    added-env.completion.hook = ''echo $name $(envfun-$name envs list)'';
     project.name = "project";
     project.completion.hint = "<project>";
     project.completion.hook = ''envth project list'';
@@ -50,8 +50,8 @@ mkEnvironmentWith env0-extensions rec {
     envth misc set-PS1
     envth misc PATH-nub
     #export ENVTH_TEMP=''${ENVTH_TEMP:=$(mktemp -d "''${TMPDIR:-/tmp}/ENVTH_$name.XXX")}
-    ENVTH_TEMP="$(mktemp -d "''${TMPDIR:-/tmp}/ENVTH_$name.XXX")"
-    trap 'rm -r $ENVTH_TEMP' EXIT
+    ENVTH_TEMP="$(mktemp -d "''${TMPDIR:-/tmp}/ENVTH_$name.XXX" 2>/dev/null)"
+    trap '[[ -n $ENVTH_TEMP ]] && rm -r $ENVTH_TEMP' EXIT
     '';
   passthru = rec {
     attrs-pre = {
@@ -79,21 +79,20 @@ mkEnvironmentWith env0-extensions rec {
           # Most options expect imported env, enter is for associated (or project) envs.
           args = [ arg-def.added-env ];
           hook = ''
+            declare env="$1"
+            shift;
             if [[ $ENVTH_ENTRY == nix-shell ]]; then
               ENVTH_OUT=""
-              env="$1"; shift
               declare -xg ENVTH_BUILDDIR_="$ENVTH_BUILDDIR"
-                exec nix develop --impure "$ENVTH_BUILDDIR/"#"$env"
+                exec nix develop --impure "$@" "$ENVTH_BUILDDIR/"#"$env"
             else
-              declare env
-              if [[ $1 == $name ]]; then
-                env="$ENVTH_OUT"
+              declare env_path
+              if [[ $env == $name ]]; then
+                env_path="$ENVTH_OUT"
               else
-                env="$(envfun-$name env show $1)"
+                env_path="$(envfun-$name envs show $env)"
               fi
-              shift
-              declare -p env
-              exec $env/bin/enter-env-$1 "$@"
+              exec $env_path/bin/enter-env-$env "$@"
             fi
             '';
         };
@@ -157,6 +156,7 @@ mkEnvironmentWith env0-extensions rec {
             if [[ $ENVTH_ENTRY != bin ]]; then
               envth build
             fi
+            nix profile remove $name &> /dev/null
             nix profile install $ENVTH_OUT
             
             if [[ $bashrc == true ]]; then
@@ -603,6 +603,8 @@ mkEnvironmentWith env0-extensions rec {
             logfile.desc = "Log output of command to file. Used with --background.";
             logfile.set = "logfile";
             logfile.arg = true;
+            append-logs.desc = "Do not erase previous log.";
+            append-logs.set = "append_logs";
           };
           args = [ "to" ];
           hook = ''
@@ -618,7 +620,11 @@ mkEnvironmentWith env0-extensions rec {
               else
                 declare enter=''${enter:=$(envth entry-path)-non-interactive};
                 logfile=''${logfile:=envth_ssh.log}
-                declare enter_cmd="nohup $enter $cmd > $logfile 2> $logfile.err < /dev/null &"
+                if [[ -z $append_logs ]]; then
+                  declare enter_cmd="nohup $enter $cmd > $logfile 2> $logfile.err < /dev/null &"
+                else
+                  declare enter_cmd="nohup $enter $cmd >> $logfile 2>> $logfile.err < /dev/null &"
+                fi
                 declare TOPT="-T"
               fi
 

@@ -111,7 +111,7 @@ rec {
         '';
     };
     commands.envs = {
-      desc = ''Show environments added through attribute "env-addEnv".'';
+      desc = ''Show environments added through attribute "env-addEnvs".'';
       commands.list.desc = "List added environments.";
       commands.list.hook = ''
         echo ${show-envs-added}
