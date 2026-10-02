@@ -1,12 +1,12 @@
 {stdenv, envth, lib}:
 with lib;
-with envth.lib.resources;
-with envth.lib.envlib;
-with envth.lib.inits;
-with envth.lib.builder;
-with envth.lib.imports;
-with envth.lib.add-envs;
-with envth.lib.projects;
+# with envth.lib.resources;
+# with envth.lib.envlib;
+with envth.inits;
+with envth.builder;
+# with envth.lib.imports;
+# with envth.lib.add-envs;
+# with envth.lib.projects;
 # with envth.lib.caller;
 rec
 {
@@ -17,24 +17,17 @@ rec
   # attributes don't define themselves. Super is the current state of the input
   # attributes. `attrs` are the attributes added/modified in the extension.
   env-extensions = [ (save-attrs-as "attrs-pre")
-                     set-default-build-dir
-                     add-passthru-pkgs
-                     gather-resources
-                     add-envs
-                     add-imports
-                     add-projects
+                    #  set-default-build-dir
+                    #  add-passthru-pkgs
+                    #  gather-resources
+                    #  add-envs
+                    #  add-imports
+                    #  add-projects
                      make-builder
-                     make-envcmd
-                     make-envlib
+                    #  make-envcmd
+                    #  make-envlib
                      (save-attrs-as "attrs-post")
                      init-env
-                    ];
-
-  env0-extensions = [ (save-attrs-as "attrs-pre")
-                       make-builder
-                       make-envcmd
-                       make-envlib
-                       (save-attrs-as "attrs-post")
                     ];
 
   process-attrs = foldl composeExtensions (_: super: super);

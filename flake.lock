@@ -1,6 +1,52 @@
 {
   "nodes": {
-    "root": {}
+    "metafun": {
+      "inputs": {
+        "nixpkgs": "nixpkgs"
+      },
+      "locked": {
+        "lastModified": 1790878348,
+        "narHash": "sha256-DD85z0eDyQlsDy8Me0Ni9/k0qwTyfeYs01xvKNp6qc0=",
+        "path": "/home/tcook/projects/nix-metafun",
+        "type": "path"
+      },
+      "original": {
+        "path": "/home/tcook/projects/nix-metafun",
+        "type": "path"
+      }
+    },
+    "nixpkgs": {
+      "locked": {
+        "lastModified": 1789370336,
+        "narHash": "sha256-obwZbWHP7htCIoq2Z0g/uTMcEgN6yqcMNIcOMe6P2qI=",
+        "rev": "c7def046b9a883d46974757852106483d741586f",
+        "type": "tarball",
+        "url": "https://releases.nixos.org/nixpkgs/nixpkgs-26.11pre1073483.c7def046b9a8/nixexprs.tar.zst"
+      },
+      "original": {
+        "type": "tarball",
+        "url": "https://channels.nixos.org/nixpkgs-unstable/nixexprs.tar.zst"
+      }
+    },
+    "nixpkgs_2": {
+      "locked": {
+        "lastModified": 1790736253,
+        "narHash": "sha256-nL+w+3HYJijdw50CxlHrO7eOlaGGy0pLRKUt3O1TKRI=",
+        "rev": "1ec21f6ee4970c41e0824c539c52a50e91fab898",
+        "type": "tarball",
+        "url": "https://releases.nixos.org/nixpkgs/nixpkgs-26.11pre1082683.1ec21f6ee497/nixexprs.tar.zst"
+      },
+      "original": {
+        "type": "tarball",
+        "url": "https://channels.nixos.org/nixpkgs-unstable/nixexprs.tar.zst"
+      }
+    },
+    "root": {
+      "inputs": {
+        "metafun": "metafun",
+        "nixpkgs": "nixpkgs_2"
+      }
+    }
   },
   "root": "root",
   "version": 7

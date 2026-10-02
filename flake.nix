@@ -1,60 +1,33 @@
+
 {
   description = "The 'envth' overlay and project templates.";
-  outputs = { self }: { 
-    # The envth flake delivers an overlay, as opposed to an
-    # individual package due to the need for envth environments
-    # to supply their own package set.
-    overlays.envth = self: super: { 
-      envth = import ./envth.nix self super; 
+  inputs = {
+    nixpkgs.url = "https://channels.nixos.org/nixpkgs-unstable/nixexprs.tar.zst";
+    metafun.url = "path:/home/tcook/projects/nix-metafun";
+  };
+  outputs = { self,nixpkgs, metafun }@inputs: rec { 
+    templates.default = templates.new;
+    templates.new = {
+      path = templates/new;
+      description = "A minimal envth template.";
+      welcomeText = ''# Initializing new envth template.
+        Run `envth enter`.
+        '';
+    };
+
+    packages = builtins.mapAttrs (system: pkgs_: 
+      let pkgs = pkgs_.extend (_: _: inputs.metafun.packages."${system}");
+          envthpkg = pkgs.callPackage ./envth.nix { flakePath = self ;};
+      in {envth = envthpkg;} ) nixpkgs.legacyPackages;
+   
+    devShells = builtins.mapAttrs (system: pkgs: rec {
+      envth = pkgs.mkShell {
+        packages = [ packages."${system}".envth ];
+        shellHook = "cd /home/tcook/projects/envth-test";
       };
-    templates.full = {
-      path = ./templates/full;
-      description = "An environment with sepecial attributes defined.";
-      welcomeText = ''
-        # Full Envth Template
-        This flake initializes a project with all available special attributes set to the appropriate null type ([],{}).
-
-        Note: Changing environment file name must be reflected in 'definition' attribute and within flake.nix
-        '';
-    };
-    templates.minimal = {
-      path = ./templates/minimal;
-      description = "A minimal envth environment.";
-      welcomeText = ''
-        # Minimal Envth Template
-        This flake initializes a minimal envth project with only the required attributes defined.
-
-        Note: Changing environment file name must be reflected in 'definition' attribute and within flake.nix
-        '';
-    };
-    templates.example = {
-      path = ./templates/example;
-      description = "An example envth environment.";
-      welcomeText = ''
-        # Example Envth Template
-        This flake initializes an example envth project.
-        '';
-    };
-    templates.default = self.templates.minimal;
-
-    # Creates the outputs for flake files for user defined environments. See templates for example use.
-    # FORMERLY: lib.make-flake-output = self: env-file: sys:
-    lib.envth-outputs = pkgs-flake: env-file: sys:
-      let 
-        pkgs = pkgs-flake.legacyPackages.${sys};
-        env = pkgs.callPackage env-file {};
-        envs = env.envs-added // mapAttrs (n: v: v.env) env.passthru.projects // {
-          "${env.name}" = env;
-          default = env;
-          };
-        mk-app = n: v: {
-          type = "app";
-          program= "${v}/bin/enter-env-${v.name}";
-        };
-      in {
-          devShells = envs;
-          packages = envs;
-          apps = builtins.mapAttrs mk-app envs; } ;
+    }) nixpkgs.legacyPackages;
+  
+  };
 
 
 }

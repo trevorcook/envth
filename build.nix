@@ -1,4 +1,4 @@
-{ envth, writeScript, stdenv, makeWrapper, bash, bashInteractive, coreutils }:
+{ writeScript, stdenv, makeWrapper, bash, bashInteractive, coreutils }:
 
 
 rec {
